@@ -1,0 +1,55 @@
+/* The presentation zone is reserved by the 3D camera as well as by this panel. */
+.west-focus-panel {
+  --focus-top: 42px;
+  top: var(--focus-top);
+  max-height: calc(100% - var(--focus-top) - 20px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #665b46 transparent;
+  right: 84px;
+  width: min(29%, 350px);
+  padding: 23px;
+  border-color: rgba(207,183,132,.24);
+  background: linear-gradient(145deg,rgba(27,33,36,.97),rgba(12,18,21,.98));
+  backdrop-filter: none;
+  animation: situation-enter .7s .75s both cubic-bezier(.2,.65,.2,1);
+}
+.west-focus-panel h3 {font-size:30px;margin:13px 0 7px;letter-spacing:-.025em}
+.west-focus-panel>p {font-size:11px;line-height:1.5;color:#a3a59e}
+.focus-kicker {display:flex;align-items:center;font-size:9px;letter-spacing:.14em}
+.focus-kicker small {margin-left:auto;font-size:7px;color:#818d8b;letter-spacing:.1em}
+.focus-health {display:flex;align-items:center;gap:7px;font-size:10px;color:#bac8b5;margin:20px 0 0}
+.focus-health i {width:5px;height:5px;border-radius:50%;background:#9aaf92}
+.focus-health.incident {color:#f2a88e}.focus-health.incident i {background:#f88368}
+.west-focus-panel .focus-stats {grid-template-columns:repeat(2,1fr);margin-top:17px;padding:5px 0;row-gap:1px}
+.west-focus-panel .focus-stats>span {padding:12px 0;gap:7px}
+.west-focus-panel .focus-stats small {font-size:10px;color:#929b96}
+.west-focus-panel .focus-stats b {font-family:Arial,sans-serif;font-size:26px;font-weight:400;color:#e8e5dc}
+.west-focus-panel .focus-stats b.risk-value {color:#d5b57b}
+.focus-section-title {font-size:8px;letter-spacing:.14em;color:#c1ac80;margin-top:19px}
+.focus-summary {font-size:11px;line-height:1.65;color:#a8afa9;margin-top:8px}
+.focus-performance {display:grid;grid-template-columns:1fr auto;gap:9px;font-size:10px;margin-top:18px;color:#a8afa9}
+.focus-performance b {font-size:11px;color:#dad9ca;font-weight:400}
+.focus-performance>i {grid-column:1/-1;height:3px;background:#303a3c;border-radius:4px;overflow:hidden}
+.focus-performance em {display:block;height:100%;background:linear-gradient(90deg,#8e7854,#cdb47d)}
+.west-focus-panel .route-summary {margin-top:20px;padding-top:17px;border-top:1px solid rgba(240,233,213,.09)}
+.west-focus-panel .route-summary svg {width:23px;flex-shrink:0}
+.west-focus-panel .route-summary b {font-size:11px;font-weight:500}
+.west-focus-panel .route-summary small {font-size:9px;color:#8e9a94;line-height:1.45}
+.focus-note {display:flex;align-items:center;gap:5px;font-size:8px;color:#71817f;margin-top:19px}
+.focus-note svg {width:11px;height:11px}.focus-note>span {margin-left:auto}
+.has-region-focus .live-card {opacity:0;pointer-events:none;transition:opacity .3s}
+@keyframes situation-enter {from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+@media(max-height:900px){.west-focus-panel{top:20px;padding:16px}.west-focus-panel h3{font-size:25px;margin-top:9px}.focus-health{margin-top:13px}.west-focus-panel .focus-stats{margin-top:12px}.west-focus-panel .focus-stats>span{padding:8px 0}.focus-section-title{margin-top:12px}.focus-summary{font-size:10px}.focus-performance{margin-top:11px}.west-focus-panel .route-summary{margin-top:12px;padding-top:11px}.focus-note{margin-top:12px}}
+@media(prefers-reduced-motion:reduce){.west-focus-panel{animation:none}}
+@media(max-height:900px){.west-focus-panel{--focus-top:20px}}
+.inspection-toolbar{position:absolute;z-index:5;left:56px;bottom:45px;display:flex;align-items:center;gap:12px;pointer-events:none}
+.inspection-toolbar button{pointer-events:auto;display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid #b59f7140;border-radius:5px;background:#111110db;color:#d9cfb8;font-size:10px;cursor:pointer}
+.inspection-toolbar svg{width:13px;height:13px}.inspection-toolbar span{font-size:9px;letter-spacing:.035em;color:#88867d}
+.inspection-toolbar button:hover:not(:disabled){border-color:#d1b88999;background:#24221c}
+.inspection-toolbar button:disabled,.zoom-control button:disabled{opacity:.4;cursor:default}
+.singapore-canvas canvas{touch-action:none;user-select:none;-webkit-user-select:none}
+.map-heading,.map-heading *{user-select:none;-webkit-user-select:none;pointer-events:none;background:none;border:0;box-shadow:none}
+.map-heading span{color:#e9e5d9;text-shadow:0 0 9px #eee1bd14;letter-spacing:.26em}
+.map-heading small{color:#a29b87;text-shadow:0 0 5px #e5d6aa08}

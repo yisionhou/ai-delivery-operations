@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-09-24T19:02:06.718Z",
+  "sources": [
+    {
+      "agency": "SLA",
+      "datasetId": "d_29f066d67df3eae91df8a42f443863c8",
+      "url": "https://data.gov.sg/datasets/d_29f066d67df3eae91df8a42f443863c8/view"
+    },
+    {
+      "agency": "URA",
+      "datasetId": "d_4ce0038f7ac689652350bb91b7fb92ed",
+      "url": "https://data.gov.sg/datasets/d_4ce0038f7ac689652350bb91b7fb92ed/view"
+    }
+  ],
+  "method": "URA regions intersected with the union of SLA Coastal_Outlines, minus SLA Hydrographic polygons. Malaysia/Johor excluded. No simplification, smoothing, densification or coordinate rounding.",
+  "slaFeatureClasses": {
+    "Layers/Hydrographic": 845,
+    "Layers/Coastal_Outlines": 104,
+    "Layers/Parks_NaturalReserve": 473,
+    "Layers/Central_Business_District": 1,
+    "Layers/Airport_Runway": 2,
+    "Layers/SMap_PedraBranca_Inset_Anno": 8,
+    "Layers/PB_draw_frame": 1
+  },
+  "coastalFeatures": 92,
+  "waterFeatures": 843,
+  "originalUraVertices": 29746,
+  "finalVertices": 84075,
+  "overlapAreaM2": 0,
+  "coverageErrorM2": 1.1175870895385742e-8,
+  "regions": [
+    {
+      "name": "CENTRAL REGION",
+      "vertices": 32689,
+      "polygons": 190
+    },
+    {
+      "name": "EAST REGION",
+      "vertices": 5599,
+      "polygons": 2
+    },
+    {
+      "name": "WEST REGION",
+      "vertices": 21244,
+      "polygons": 32
+    },
+    {
+      "name": "NORTH REGION",
+      "vertices": 12094,
+      "polygons": 21
+    },
+    {
+      "name": "NORTH-EAST REGION",
+      "vertices": 12449,
+      "polygons": 23
+    }
+  ]
+}
