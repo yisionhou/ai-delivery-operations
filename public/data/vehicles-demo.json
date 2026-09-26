@@ -1,0 +1,98 @@
+{
+  "source": "DEMO",
+  "businessDate": "2026-09-26",
+  "hasCurrentPlan": true,
+  "vehicles": [
+    {
+      "id": "V01",
+      "code": "V01",
+      "name": null,
+      "status": "ACTIVE",
+      "capacity": null,
+      "recordedLocation": null,
+      "recordedAt": null,
+      "incidentId": null,
+      "driver": "D-01",
+      "routeId": "R-01",
+      "routeStatus": "ON_ROUTE"
+    },
+    {
+      "id": "V02",
+      "code": "V02",
+      "name": null,
+      "status": "ACTIVE",
+      "capacity": null,
+      "recordedLocation": null,
+      "recordedAt": null,
+      "incidentId": null,
+      "driver": "D-02",
+      "routeId": "R-02",
+      "routeStatus": "AT_RISK"
+    },
+    {
+      "id": "V03",
+      "code": "V03",
+      "name": null,
+      "status": "UNAVAILABLE",
+      "capacity": null,
+      "recordedLocation": null,
+      "recordedAt": null,
+      "incidentId": "INC-007",
+      "driver": "D-03",
+      "routeId": "R-03",
+      "routeStatus": "UNAVAILABLE"
+    },
+    {
+      "id": "V04",
+      "code": "V04",
+      "name": null,
+      "status": "ACTIVE",
+      "capacity": null,
+      "recordedLocation": null,
+      "recordedAt": null,
+      "incidentId": null,
+      "driver": "D-04",
+      "routeId": "R-04",
+      "routeStatus": "ON_ROUTE"
+    },
+    {
+      "id": "V06",
+      "code": "V06",
+      "name": null,
+      "status": "AVAILABLE",
+      "capacity": null,
+      "recordedLocation": null,
+      "recordedAt": null,
+      "incidentId": null,
+      "driver": null,
+      "routeId": null,
+      "routeStatus": null
+    },
+    {
+      "id": "V07",
+      "code": "V07",
+      "name": null,
+      "status": "AVAILABLE",
+      "capacity": null,
+      "recordedLocation": null,
+      "recordedAt": null,
+      "incidentId": null,
+      "driver": null,
+      "routeId": null,
+      "routeStatus": null
+    },
+    {
+      "id": "V08",
+      "code": "V08",
+      "name": null,
+      "status": "AVAILABLE",
+      "capacity": null,
+      "recordedLocation": null,
+      "recordedAt": null,
+      "incidentId": null,
+      "driver": null,
+      "routeId": null,
+      "routeStatus": null
+    }
+  ]
+}

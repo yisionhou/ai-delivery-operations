@@ -1,0 +1,178 @@
+{
+  "R-01": [
+    {
+      "id": "S-01",
+      "sequence": 1,
+      "location": "Jurong East Merchant",
+      "kind": "PICKUP",
+      "orderId": "O-012",
+      "status": "COMPLETED",
+      "plannedArrival": "10:20",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    },
+    {
+      "id": "S-02",
+      "sequence": 2,
+      "location": "Queenstown",
+      "kind": "DELIVERY",
+      "orderId": "O-012",
+      "status": "IN_PROGRESS",
+      "plannedArrival": "10:48",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    },
+    {
+      "id": "S-03",
+      "sequence": 3,
+      "location": "Marina Bay",
+      "kind": "DELIVERY",
+      "orderId": "O-018",
+      "status": "WAITING",
+      "plannedArrival": "11:16",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    }
+  ],
+  "R-02": [
+    {
+      "id": "S-04",
+      "sequence": 1,
+      "location": "Bukit Batok Merchant",
+      "kind": "PICKUP",
+      "orderId": "O-020",
+      "status": "COMPLETED",
+      "plannedArrival": "10:24",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    },
+    {
+      "id": "S-05",
+      "sequence": 2,
+      "location": "Clementi",
+      "kind": "DELIVERY",
+      "orderId": "O-020",
+      "status": "IN_PROGRESS",
+      "plannedArrival": "10:56",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    },
+    {
+      "id": "S-06",
+      "sequence": 3,
+      "location": "Buona Vista",
+      "kind": "DELIVERY",
+      "orderId": "O-022",
+      "status": "WAITING",
+      "plannedArrival": "11:22",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    }
+  ],
+  "R-03": [
+    {
+      "id": "S-07",
+      "sequence": 1,
+      "location": "Jurong Merchant",
+      "kind": "PICKUP",
+      "orderId": "O-021",
+      "status": "COMPLETED",
+      "plannedArrival": "10:28",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    },
+    {
+      "id": "S-08",
+      "sequence": 2,
+      "location": "Jurong East",
+      "kind": "DELIVERY",
+      "orderId": "O-021",
+      "status": "IN_PROGRESS",
+      "plannedArrival": "10:52",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    },
+    {
+      "id": "S-09",
+      "sequence": 3,
+      "location": "IMM",
+      "kind": "DELIVERY",
+      "orderId": "O-024",
+      "status": "WAITING",
+      "plannedArrival": "10:58",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    },
+    {
+      "id": "S-13",
+      "sequence": 4,
+      "location": "Clementi",
+      "kind": "DELIVERY",
+      "orderId": "O-028",
+      "status": "WAITING",
+      "plannedArrival": "11:07",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    },
+    {
+      "id": "S-14",
+      "sequence": 5,
+      "location": "West Coast",
+      "kind": "DELIVERY",
+      "orderId": "O-031",
+      "status": "WAITING",
+      "plannedArrival": "11:14",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    }
+  ],
+  "R-04": [
+    {
+      "id": "S-10",
+      "sequence": 1,
+      "location": "Tampines Merchant",
+      "kind": "PICKUP",
+      "orderId": "O-037",
+      "status": "COMPLETED",
+      "plannedArrival": "10:30",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    },
+    {
+      "id": "S-11",
+      "sequence": 2,
+      "location": "Paya Lebar",
+      "kind": "DELIVERY",
+      "orderId": "O-037",
+      "status": "IN_PROGRESS",
+      "plannedArrival": "11:02",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    },
+    {
+      "id": "S-12",
+      "sequence": 3,
+      "location": "Kallang",
+      "kind": "DELIVERY",
+      "orderId": "O-041",
+      "status": "WAITING",
+      "plannedArrival": "11:28",
+      "plannedDeparture": null,
+      "actualArrival": null,
+      "actualDeparture": null
+    }
+  ]
+}

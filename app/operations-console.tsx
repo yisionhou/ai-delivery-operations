@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react";
 import {
-  AlertTriangle, ArrowLeft, BarChart3, Bell, Box, Boxes, Check, ChevronRight,
-  Clock3, CloudRain, LayoutDashboard, Minus, Package, Play, Plus, Search,
-  Settings, Sparkles, Truck, UserRound, Waypoints, RotateCcw,
+  AlertTriangle, ArrowLeft, Bell, Box, Check, ChevronRight,
+  Clock3, CloudRain, Minus, Package, Play, Plus, Search,
+  Truck, UserRound, Waypoints, RotateCcw,
 } from "lucide-react";
 import SingaporeScene, { RegionCollection, RegionKey } from "./singapore-scene";
 import type { CameraCommand } from './inspection-camera';
 import IncidentFocusPage from './incidents/incident-focus-page';
 import {incident,incidentWorkspaces} from './incidents/incident-mock';
+import Sidebar from "./nexus-sidebar";
 import OperationsPage from './operations/operations-page';
 
 type AppState = "SINGAPORE_OVERVIEW" | "REGION_FOCUS" | "INCIDENT_FOCUS" | "RECOVERY";
@@ -35,24 +36,6 @@ const REGION_STATS: Record<RegionKey,{label:string;districts:string;orders:numbe
   "NORTH REGION": {label:"North Region",districts:"Woodlands · Sembawang · Yishun",orders:236,vehicles:44,atRisk:3,routes:4},
   "NORTH-EAST REGION": {label:"North-East Region",districts:"Punggol · Sengkang · Hougang",orders:291,vehicles:56,atRisk:5,routes:4},
 };
-
-function BrandMark() {
-  return <span className="nexus-mark"><span/><span/><span/></span>;
-}
-
-function Sidebar({ onIncident, onOverview, onOperations, activePage }: { onIncident: () => void; onOverview: () => void; onOperations: () => void; activePage: 'overview'|'operations'|'incidents' }) {
-  const nav = [
-    ["Overview", LayoutDashboard], ["Operations", Boxes], ["Incidents", AlertTriangle],
-    ["AI Agent", Sparkles], ["Vehicles", Truck], ["Orders", Package], ["Analytics", BarChart3],
-  ] as const;
-  return <aside className="nexus-sidebar">
-    <div className="nexus-brand"><BrandMark/><span><b>NEXUS</b><small>Delivery Operations</small></span></div>
-    <nav>{nav.map(([label, Icon]) => <button key={label} disabled={!['Overview','Operations','Incidents'].includes(label)} className={label.toLowerCase()===activePage ? "active" : ""} aria-current={label.toLowerCase()===activePage ? "page" : undefined} onClick={label === "Incidents" ? onIncident : label === "Operations" ? onOperations : label === "Overview" ? onOverview : undefined}>
-      <Icon/><span>{label}</span>{label === "Incidents" && <em>{Object.keys(incidentWorkspaces).length}</em>}
-    </button>)}</nav>
-    <button className="settings-link"><Settings/><span>Settings</span></button>
-  </aside>;
-}
 
 function KpiCard({ item }: { item: typeof KPI[number] }) {
   const Icon = item.icon;
@@ -124,11 +107,11 @@ function AgentPanel({ state }: { state: AppState }) {
   </section>;
 }
 
-export default function OperationsConsole() {
+export default function OperationsConsole({initialPage='overview'}:{initialPage?:'overview'|'operations'}) {
   const [geo, setGeo] = useState<RegionCollection | null>(null);
   const [state, setState] = useState<AppState>("SINGAPORE_OVERVIEW");
-  const [activePage,setActivePage]=useState<'overview'|'operations'|'incidents'>('overview');
-  const [visitedOperations,setVisitedOperations]=useState(false);
+  const [activePage,setActivePage]=useState<'overview'|'operations'|'incidents'>(initialPage);
+  const [visitedOperations,setVisitedOperations]=useState(initialPage==='operations');
   const [visitedIncidents,setVisitedIncidents]=useState(false);
   const [documentVisible,setDocumentVisible]=useState(true);
   const [recoveryRevision,setRecoveryRevision]=useState(0);
