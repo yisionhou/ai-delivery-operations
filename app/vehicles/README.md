@@ -6,12 +6,14 @@ Implemented in the existing NEXUS frontend. No second application or backend mut
 
 - `npm run dev` (existing project command, port 5173).
 - `/vehicles`: backend mode, defaults to the current Singapore business date.
-- `/vehicles?source=demo&business_date=2026-09-26`: explicit local demo.
-- `/vehicles/:vehicleId`: independent vehicle detail; backend IDs are UUIDs.
+- `/vehicles?source=demo`: local demo for today's Singapore business date; open V01 to watch a roughly two-minute countdown.
+- `/vehicles?source=demo&business_date=2026-09-26`: historical snapshot, whose planned window has ended.
+- `/vehicles?selected_vehicle=:vehicleId`: opens the right-side inspector while keeping the fleet board visible.
+- `/vehicles/:vehicleId`: compatibility redirect to the board with that inspector selected; backend IDs are UUIDs.
 - `/incidents?incident_id=...&vehicle_id=...&business_date=...`: Incident handoff.
 - `/orders?selected_order=...&vehicle_id=...&business_date=...`: selected Order handoff.
 
-`source`, `business_date`, `filter` and `page` travel with links and Back actions. The original Overview/Operations shell remains in use; only its sidebar was extracted to enable shared navigation. The existing demo shell initially opens the explicit demo. The Vehicles shell preserves the currently chosen data source.
+`source`, `business_date`, `filter` and `page` travel with links and Back actions. Selecting or closing a vehicle keeps the board scroll position. The original Overview/Operations shell remains in use; only its sidebar was extracted to enable shared navigation. The existing demo shell initially opens the explicit demo. The Vehicles shell preserves the currently chosen data source.
 
 Backend reads use the same-origin, read-only `app/api/[...path]/route.ts` bridge. Set **server-side** `PENROSE_API_URL` to the backend origin (default `http://127.0.0.1:8000`) and restart the frontend. Do not include `/api` in that origin. The bridge allows only the verified read routes used by this module, forwards backend envelopes/statuses, and returns a clear 503 when the backend is unreachable. It does not start, seed, mutate, or configure the backend database.
 
@@ -41,7 +43,7 @@ The backend has **no place name in RouteStopResponse and no locations read route
 
 Resource pages are fetched from the server, with 8 rows per logical board page. All mode composes status-filtered backend pages in EXCEPTION → ACTIVE → AVAILABLE order, using per-status totals, so exceptions cannot be stranded behind an active-only first page. Status pages use actual `page/page_size/status` parameters; complete resource lists are not downloaded. The UI retains its date/filter/page in the URL. Within each group, resource codes give a stable order; percentages never control ordering.
 
-Operations and Incident association lists are fully traversed using the backend's pagination metadata (100 per page). The board refreshes every 15 seconds while visible. Detail stops refresh every 15 seconds and resources/associations every 30 seconds. Requests are cancelled when their context changes. Stops are keyed to their route so a new route cannot inherit the old route's progress.
+Operations and Incident association lists are fully traversed using the backend's pagination metadata (100 per page). The board refreshes every 15 seconds while visible. The inspector reuses the selected board vehicle and route stops. Direct links to vehicles outside the current page fetch the vehicle and its stops on demand. A local stops retry keeps vehicle identity visible when that request fails. Requests are cancelled when their context changes. Stops are keyed to their route so a new route cannot inherit the old route's progress.
 
 Counts reflect resource statuses, including completed resources; a completed board row disappearing does not delete that resource or alter backend totals. Completion is view-only: motorcycle reaches the end, Completed state is displayed, row fades/collapses over about 1.1 seconds. Exceptions always remain visible even if their route has completed stops. Reassignment with a new route ID restores visibility. Group moves use a 500 ms layout transition. Reduced-motion mode skips animations and preserves all navigation and completion behavior.
 
@@ -51,7 +53,8 @@ Counts reflect resource statuses, including completed resources; a completed boa
 - Remaining stops = total minus completed.
 - Current stop = first ARRIVED/IN_SERVICE (or demo IN_PROGRESS); otherwise first unfinished stop.
 - Related Orders = unique order IDs in the current route's stops.
-- Route summary = first/last returned stop labels; stylized curved route = ordered stops, **not road geometry/navigation**.
+- Route summary = first/last returned stop labels. The board owns the horizontal stop progress track; the inspector shows the time window and vertical stop execution sequence.
+- Stop Timeline start = earliest actual arrival (or planned arrival where no actual arrival exists); end = latest planned departure/arrival. The browser clock supplies the current Singapore time and updates the indicator and countdown to planned end every second. Demo `HH:mm` stop times are anchored to their stated business date; historical snapshots show `Ended` rather than a simulated clock. Missing timing data remains unavailable.
 - Times from backend timestamps display in Asia/Singapore.
 - Last Recorded Location is explicitly **not live GPS**.
 - No simulated-position endpoint, synthetic distance, battery, ETA, trends, search, rider photo, or fake road-map layer.
@@ -60,7 +63,7 @@ Counts reflect resource statuses, including completed resources; a completed boa
 
 ## Demo provenance and current boundaries
 
-The static demo uses V01–V04 route/driver/stop facts copied from the existing `operations/operations-data.ts` demo snapshot. It adds explicit AVAILABLE fixtures V06–V08 so the unassigned state is inspectable. Names, capacity, recorded locations and actual times remain null where that fixture provides none. The demo date/plan presence are a Vehicles demonstration snapshot, not the Operations page's in-memory Confirm state. The existing trusted demo Incident is INC-007.
+The demo uses V01–V04 route/driver/stop facts copied from the existing `operations/operations-data.ts` snapshot. For today's demo date only, V01 keeps those three stops and their statuses but sets their planned arrivals relative to the browser session start: one minute ago, 15 seconds ago, and two minutes ahead. The end stays fixed during 15-second fleet polling, so its countdown genuinely decreases. Reloading the demo starts a fresh example. The original 2026-09-26 snapshot remains available by URL. V06–V08 are explicit AVAILABLE fixtures. Names, capacity, recorded locations and actual times remain null where the fixture provides none. The existing trusted demo Incident is INC-007.
 
 The existing Incident review remains a demo and is used only for demo IDs/source. API mode opens the real persisted Incident's read context; it cannot use the mock recovery approval UI. Orders had no implemented module in the baseline; the new route is a narrow selected-context handoff, not a new full Orders workspace.
 
@@ -76,5 +79,5 @@ At delivery, port 8000 was not serving PenroseRoute. Live database end-to-end ve
 
 Browser tests require Playwright and Chrome. Set `PLAYWRIGHT_MODULE` to an installed Playwright ESM module when it is not a project dependency, optionally set `CHROME_PATH`, `VEHICLES_BASE_URL`, and `HEADED=1` for a visible Chrome run. No extra app dependency is required.
 
-The browser suite covers 25 scenarios, including Active/Available/Exception, row and chevron targets, direct routes/Back, Orders context, contract envelopes, association pagination beyond 100 records, resource pagination with date/filter, no plan, no route, empty fleet, association failures, stops failures and Retry, missing Incident IDs, stable ordering, exception promotion, completion, reduced motion, and compact layout. API scenarios use intercepted responses matching the inspected Python schemas, **not a live database**. Unintercepted backend-offline handling and Overview/Operations navigation were checked separately. Runtime and hydration errors are zero; the HTTP errors in the negative tests are intentionally injected 404/503 responses.
+The browser suite covers Active/Available/Exception, inspector selection and close, direct-route compatibility, Orders context, contract envelopes, association pagination beyond 100 records, resource pagination with date/filter, no plan, no route, empty fleet, association failures, stops failures and Retry, missing Incident IDs, stable ordering, exception promotion, completion, reduced motion, and compact layout. API scenarios use intercepted responses matching the inspected Python schemas, **not a live database**. The standalone timeline check is `node scripts/check-vehicle-timeline.mjs`. A running configured API/PostgreSQL remains necessary for live fleet records.
 
