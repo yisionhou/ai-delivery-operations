@@ -1,6 +1,6 @@
 // Same-origin read-only bridge. No credentials or backend URLs enter the UI.
 // Backend must be running separately; no automatic mock fallback or mutations.
-const allowed=/^(vehicles(?:\/[a-zA-Z0-9-]+)?|operations\/vehicles|vehicle-routes\/[a-zA-Z0-9-]+\/stops|incidents(?:\/[a-zA-Z0-9-]+)?|orders\/[a-zA-Z0-9-]+)$/;
+const allowed=/^(vehicles(?:\/[a-zA-Z0-9-]+)?|operations\/(?:vehicles|orders|dashboard)|vehicle-routes\/[a-zA-Z0-9-]+\/stops|incidents(?:\/[a-zA-Z0-9-]+)?|orders(?:\/[a-zA-Z0-9-]+)?)$/;
 export async function GET(request:Request,{params}:{params:Promise<{path:string[]}>}){
   const {path}=await params,resource=path.join('/');
   if(!allowed.test(resource))return Response.json({success:false,code:'NOT_FOUND',message:'This read endpoint is not registered.',data:null,request_id:'frontend'},{status:404});

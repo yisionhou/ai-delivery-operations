@@ -1,4 +1,5 @@
 import {Suspense} from 'react';
-import NavigationHandoff from '../vehicles/navigation-handoff';
+import OrdersWorkspace from './orders-workspace';
 import '../vehicles/vehicles.css';
-export default function OrdersPage(){return <Suspense fallback={<div>Loading order…</div>}><NavigationHandoff kind="order"/></Suspense>;}
+import './orders.css';
+export default function OrdersPage(){return <Suspense fallback={<div>Loading orders…</div>}><OrdersWorkspace/></Suspense>;}
