@@ -10,6 +10,7 @@ import SingaporeScene, { RegionCollection, RegionKey } from "./singapore-scene";
 import type { CameraCommand } from './inspection-camera';
 import IncidentFocusPage from './incidents/incident-focus-page';
 import {incident,incidentWorkspaces} from './incidents/incident-mock';
+import OperationsPage from './operations/operations-page';
 
 type AppState = "SINGAPORE_OVERVIEW" | "REGION_FOCUS" | "INCIDENT_FOCUS" | "RECOVERY";
 
@@ -39,14 +40,14 @@ function BrandMark() {
   return <span className="nexus-mark"><span/><span/><span/></span>;
 }
 
-function Sidebar({ onIncident, onOverview, incidentActive }: { onIncident: () => void; onOverview: () => void; incidentActive: boolean }) {
+function Sidebar({ onIncident, onOverview, onOperations, activePage }: { onIncident: () => void; onOverview: () => void; onOperations: () => void; activePage: 'overview'|'operations'|'incidents' }) {
   const nav = [
     ["Overview", LayoutDashboard], ["Operations", Boxes], ["Incidents", AlertTriangle],
     ["AI Agent", Sparkles], ["Vehicles", Truck], ["Orders", Package], ["Analytics", BarChart3],
   ] as const;
   return <aside className="nexus-sidebar">
     <div className="nexus-brand"><BrandMark/><span><b>NEXUS</b><small>Delivery Operations</small></span></div>
-    <nav>{nav.map(([label, Icon]) => <button key={label} className={(incidentActive ? label === "Incidents" : label === "Overview") ? "active" : ""} aria-current={(incidentActive ? label === "Incidents" : label === "Overview") ? "page" : undefined} onClick={label === "Incidents" ? onIncident : label === "Overview" ? onOverview : undefined}>
+    <nav>{nav.map(([label, Icon]) => <button key={label} disabled={!['Overview','Operations','Incidents'].includes(label)} className={label.toLowerCase()===activePage ? "active" : ""} aria-current={label.toLowerCase()===activePage ? "page" : undefined} onClick={label === "Incidents" ? onIncident : label === "Operations" ? onOperations : label === "Overview" ? onOverview : undefined}>
       <Icon/><span>{label}</span>{label === "Incidents" && <em>{Object.keys(incidentWorkspaces).length}</em>}
     </button>)}</nav>
     <button className="settings-link"><Settings/><span>Settings</span></button>
@@ -126,7 +127,8 @@ function AgentPanel({ state }: { state: AppState }) {
 export default function OperationsConsole() {
   const [geo, setGeo] = useState<RegionCollection | null>(null);
   const [state, setState] = useState<AppState>("SINGAPORE_OVERVIEW");
-  const [incidentActive, setIncidentActive] = useState(false);
+  const [activePage,setActivePage]=useState<'overview'|'operations'|'incidents'>('overview');
+  const [recoveryRevision,setRecoveryRevision]=useState(0);
   const [selectedIncidentId,setSelectedIncidentId]=useState(incident.id);
   const [selectedRegion, setSelectedRegion] = useState<RegionKey | null>(null);
   const [hoveredRegion, setHoveredRegion] = useState<RegionKey|null>(null);
@@ -143,11 +145,11 @@ export default function OperationsConsole() {
 
   const selectRegion = (key:RegionKey) => { setSelectedRegion(key); setState("REGION_FOCUS"); setHoveredRegion(null); };
   const reset = () => { setSelectedRegion(null); setState("SINGAPORE_OVERVIEW"); setHoveredRegion(null); };
-  const stageIncident = (id=incident.id) => {setSelectedIncidentId(id);setIncidentActive(true);};
+  const stageIncident = (id=incident.id) => {if(!incidentWorkspaces[id])return;setSelectedIncidentId(id);setActivePage('incidents');};
 
-  return <main className="nexus-app">
-    <Sidebar onIncident={()=>stageIncident()} onOverview={() => setIncidentActive(false)} incidentActive={incidentActive}/>
-    <div className="nexus-main" style={incidentActive ? {display:'none'} : undefined} aria-hidden={incidentActive || undefined}>
+  return <main className={`nexus-app page-${activePage}`}>
+    <Sidebar onIncident={()=>stageIncident()} onOverview={() => setActivePage('overview')} onOperations={()=>setActivePage('operations')} activePage={activePage}/>
+    <div className="nexus-main" style={activePage!=='overview' ? {display:'none'} : undefined} aria-hidden={activePage!=='overview' || undefined}>
       <header className="nexus-header"><div><h1>Good morning, Alex.</h1><p>Everything in motion. We&apos;ll help you keep it that way.</p></div>
         <div className="header-tools"><label><Search/><input aria-label="Search" placeholder="Search order, vehicle, location..."/></label><button aria-label="Notifications"><Bell/></button><span className="user-avatar"><UserRound/></span></div>
       </header>
@@ -159,7 +161,8 @@ export default function OperationsConsole() {
       <section className="bottom-grid"><VehiclePanel/><IncidentPanel onIncident={()=>stageIncident()}/><AgentPanel state={state}/></section>
       <div className="sr-only" aria-live="polite">{state}. {selectedRegion ?? "Singapore overview"}.</div>
     </div>
-    <div style={{display:incidentActive ? 'contents' : 'none'}}><IncidentFocusPage active={incidentActive} data={incidentWorkspaces[selectedIncidentId]}/></div>
+    <div style={{display:activePage==='operations' ? 'contents' : 'none'}}><OperationsPage key={recoveryRevision} onOpenIncident={stageIncident} recoveryRevision={recoveryRevision}/></div>
+    <div style={{display:activePage==='incidents' ? 'contents' : 'none'}}><IncidentFocusPage active={activePage==='incidents'} data={incidentWorkspaces[selectedIncidentId]} onRecoveryApplied={()=>setRecoveryRevision(value=>value+1)}/></div>
   </main>;
 }
 

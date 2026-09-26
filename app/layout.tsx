@@ -3,6 +3,7 @@ import "./globals.css";
 import "./reference.css";
 import "./region-focus.css";
 import "./incidents/incident-focus.css";
+import "./operations/operations.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 export const metadata: Metadata = {

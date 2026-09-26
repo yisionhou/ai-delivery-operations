@@ -52,7 +52,7 @@ function PlanImpactSummary(){
   const {comparison,candidatePlan}=useWorkspace();const impact=comparison.disturbanceSummary;
   return <><div className="if-impact-grid"><div><Package/><span>Orders reassigned<b>{impact.reassignedOrders}</b></span></div><div><Truck/><span>Vehicles affected<b>{impact.affectedVehicles}</b></span></div><div><Waypoints/><span>Route tasks changed<b>{impact.routeTasksChanged}</b></span></div><div><ChartNoAxesCombined/><span>ETA impact<b className="if-coral">{impact.etaSummary.split(' across ')[0]}</b></span></div></div><div className="if-impact-metrics"><RemainingTravel label="Remaining distance" metric={comparison.remainingMetrics.distance}/><RemainingTravel label="Remaining duration" metric={comparison.remainingMetrics.duration}/></div><p className="if-protected-note"><ShieldCheck/>{impact.protectedWork}</p><div className="if-workflow-status"><span className="if-status-dot"/>{candidatePlan.status==='APPLIED'?'Mock dispatch applied · Monitoring':candidatePlan.status==='READY'?'Awaiting dispatcher approval':`Candidate ${candidatePlan.status.toLowerCase()}`}<small>Execution telemetry is not connected.</small></div></>;
 }
-function IncidentFocusContent({initialData,active}:{initialData:IncidentWorkspace;active:boolean}){
+function IncidentFocusContent({initialData,active,onRecoveryApplied}:{initialData:IncidentWorkspace;active:boolean;onRecoveryApplied?:()=>void}){
   const [data,setData]=useState(initialData),[mode,setMode]=useState<RouteMode>('recovery');
   const [selected,setSelected]=useState<string|null>(null),[hovered,setHovered]=useState<string|null>(null),[selectedVehicle,setSelectedVehicle]=useState<string|null>(null);
   const [incidentCardOpen,setIncidentCardOpen]=useState(false),[cardContext,setCardContext]=useState<CardContext>('incident');
@@ -66,7 +66,7 @@ function IncidentFocusContent({initialData,active}:{initialData:IncidentWorkspac
   async function decision(action:'approve'|'reject'|'modify',value?:string|ModifyRequest){
     if(inFlight.current||action==='approve'&&!canApproveCandidate(data))return;
     inFlight.current=true;setPending(true);setError(null);setNotice(null);
-    try{const next=action==='approve'?await mockIncidentGateway.approve(data):action==='reject'?await mockIncidentGateway.reject(data,value as string):await mockIncidentGateway.modify(data,value as ModifyRequest);setData(next);setDialog(null);setNotice(action==='modify'?'New mock revision ready. Review before approval.':action==='reject'?'Candidate rejected. No dispatch applied.':'Mock dispatch applied. Monitoring recovery.');}
+    try{const next=action==='approve'?await mockIncidentGateway.approve(data):action==='reject'?await mockIncidentGateway.reject(data,value as string):await mockIncidentGateway.modify(data,value as ModifyRequest);setData(next);setDialog(null);setNotice(action==='modify'?'New mock revision ready. Review before approval.':action==='reject'?'Candidate rejected. No dispatch applied.':'Mock dispatch applied. Monitoring recovery.');if(action==='approve')onRecoveryApplied?.();}
     catch(cause){setError(cause instanceof Error?cause.message:'Decision request failed. Please retry.');}
     finally{inFlight.current=false;setPending(false);}
   }
@@ -89,7 +89,7 @@ function IncidentFocusContent({initialData,active}:{initialData:IncidentWorkspac
     {dialog&&<DecisionDialog kind={dialog} pending={pending} error={error} onClose={()=>setDialog(null)} onReject={reason=>void decision('reject',reason)} onModify={request=>void decision('modify',request)}/>}
   </div></WorkspaceContext.Provider>;
 }
-export default function IncidentFocusPage({data=incidentWorkspace,active=true}:{data?:IncidentWorkspace;active?:boolean}){return <IncidentFocusContent key={data.incident.id} initialData={data} active={active}/>;}
+export default function IncidentFocusPage({data=incidentWorkspace,active=true,onRecoveryApplied}:{data?:IncidentWorkspace;active?:boolean;onRecoveryApplied?:()=>void}){return <IncidentFocusContent key={data.incident.id} initialData={data} active={active} onRecoveryApplied={onRecoveryApplied}/>;}
 
 
 

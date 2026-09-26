@@ -1,0 +1,46 @@
+export type Coordinate = [number, number];
+export type StopKind = 'PICKUP' | 'DELIVERY';
+export type Stop = {id:string; kind:StopKind; order:string; place:string; at:string; point:Coordinate; execution:'WAITING'|'IN_PROGRESS'|'COMPLETED'; risk:'NORMAL'|'AT_RISK'};
+export type Route = {id:string; vehicle:string; driver:string; distanceKm:number; durationMin:number; utilization:number; status:'ON_ROUTE'|'AT_RISK'|'UNAVAILABLE'; stops:Stop[]; path:Coordinate[]};
+export type Alert = {id:string; title:string; detail:string; level:'risk'|'incident'; incidentId?:string; vehicle:string};
+export type OperationsSnapshot = {source:'DEMO'; businessDate:string; plan:{id:string;version:number;status:'DRAFT'|'CURRENT'}|null; routes:Route[]; alerts:Alert[]; readiness:{orders:number;merchantsReady:number;merchantsPreparing:number;merchantsDelayed:number;vehicles:number;drivers:number}; unassigned:{order:string;reason:string}[]; constraintSummary:string[]};
+
+// Explicit frontend fixture. These are not responses from PenroseRoute APIs.
+const routes:Route[]=[
+  {id:'R-01',vehicle:'V01',driver:'D-01',distanceKm:19.4,durationMin:84,utilization:76,status:'ON_ROUTE',path:[[103.785,1.307],[103.800,1.300],[103.814,1.296],[103.831,1.293],[103.847,1.291],[103.864,1.285]],stops:[
+    {id:'S-01',kind:'PICKUP',order:'O-012',place:'Jurong East Merchant',at:'10:20',point:[103.785,1.307],execution:'COMPLETED',risk:'NORMAL'},
+    {id:'S-02',kind:'DELIVERY',order:'O-012',place:'Queenstown',at:'10:48',point:[103.814,1.296],execution:'IN_PROGRESS',risk:'NORMAL'},
+    {id:'S-03',kind:'DELIVERY',order:'O-018',place:'Marina Bay',at:'11:16',point:[103.864,1.285],execution:'WAITING',risk:'NORMAL'}]},
+  {id:'R-02',vehicle:'V02',driver:'D-02',distanceKm:22.1,durationMin:96,utilization:82,status:'AT_RISK',path:[[103.747,1.334],[103.766,1.326],[103.785,1.319],[103.801,1.311],[103.819,1.301],[103.836,1.301]],stops:[
+    {id:'S-04',kind:'PICKUP',order:'O-020',place:'Bukit Batok Merchant',at:'10:24',point:[103.747,1.334],execution:'COMPLETED',risk:'NORMAL'},
+    {id:'S-05',kind:'DELIVERY',order:'O-020',place:'Clementi',at:'10:56',point:[103.801,1.311],execution:'IN_PROGRESS',risk:'AT_RISK'},
+    {id:'S-06',kind:'DELIVERY',order:'O-022',place:'Buona Vista',at:'11:22',point:[103.836,1.301],execution:'WAITING',risk:'AT_RISK'}]},
+  {id:'R-03',vehicle:'V03',driver:'D-03',distanceKm:13.8,durationMin:67,utilization:68,status:'UNAVAILABLE',path:[[103.740,1.324],[103.752,1.322],[103.766,1.320],[103.778,1.314],[103.788,1.309]],stops:[
+    {id:'S-07',kind:'PICKUP',order:'O-021',place:'Jurong Merchant',at:'10:28',point:[103.740,1.324],execution:'COMPLETED',risk:'NORMAL'},
+    {id:'S-08',kind:'DELIVERY',order:'O-021',place:'Jurong East',at:'10:52',point:[103.756,1.322],execution:'IN_PROGRESS',risk:'AT_RISK'},
+    {id:'S-09',kind:'DELIVERY',order:'O-024',place:'IMM',at:'10:58',point:[103.765,1.320],execution:'WAITING',risk:'AT_RISK'},
+    {id:'S-13',kind:'DELIVERY',order:'O-028',place:'Clementi',at:'11:07',point:[103.778,1.314],execution:'WAITING',risk:'AT_RISK'},
+    {id:'S-14',kind:'DELIVERY',order:'O-031',place:'West Coast',at:'11:14',point:[103.788,1.309],execution:'WAITING',risk:'AT_RISK'}]},
+  {id:'R-04',vehicle:'V04',driver:'D-04',distanceKm:24.6,durationMin:101,utilization:71,status:'ON_ROUTE',path:[[103.942,1.351],[103.928,1.347],[103.910,1.343],[103.890,1.334],[103.871,1.321],[103.852,1.305]],stops:[
+    {id:'S-10',kind:'PICKUP',order:'O-037',place:'Tampines Merchant',at:'10:30',point:[103.942,1.351],execution:'COMPLETED',risk:'NORMAL'},
+    {id:'S-11',kind:'DELIVERY',order:'O-037',place:'Paya Lebar',at:'11:02',point:[103.890,1.334],execution:'IN_PROGRESS',risk:'NORMAL'},
+    {id:'S-12',kind:'DELIVERY',order:'O-041',place:'Kallang',at:'11:28',point:[103.852,1.305],execution:'WAITING',risk:'NORMAL'}]},
+];
+
+const fixture:OperationsSnapshot={source:'DEMO',businessDate:'2026-09-26',plan:null,routes,alerts:[
+  {id:'A-01',title:'Delivery window at risk',detail:'O-020 and O-022 · Route R-02',level:'risk',vehicle:'V02'},
+  {id:'INC-007',title:'Vehicle unavailable',detail:'V03 · Jurong East · recovery review',level:'incident',incidentId:'INC-007',vehicle:'V03'},
+],readiness:{orders:10,merchantsReady:4,merchantsPreparing:0,merchantsDelayed:0,vehicles:4,drivers:4},unassigned:[],constraintSummary:['Pickup before delivery','Vehicle load capacity','Merchant ready times','Delivery time windows']};
+
+export interface OperationsAdapter {
+  load():Promise<OperationsSnapshot>;
+  generate(snapshot:OperationsSnapshot):Promise<OperationsSnapshot>;
+  confirm(snapshot:OperationsSnapshot):Promise<OperationsSnapshot>;
+}
+
+const pause=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
+export const demoOperationsAdapter:OperationsAdapter={
+  async load(){return structuredClone(fixture);},
+  async generate(snapshot){await pause(700);return {...snapshot,plan:{id:'PLAN-BASE-007',version:4,status:'DRAFT'}};},
+  async confirm(snapshot){await pause(350);if(!snapshot.plan||snapshot.plan.status!=='DRAFT')throw new Error('Generate and review a plan first.');return {...snapshot,plan:{...snapshot.plan,status:'CURRENT'}};},
+};

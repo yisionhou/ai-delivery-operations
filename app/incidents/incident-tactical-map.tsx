@@ -7,11 +7,11 @@ import type {Map as MapLibreMap, Marker, GeoJSONSource, RasterTileSource, Expres
 import type {FeatureCollection} from 'geojson';
 import type {IncidentWorkspace,RouteMode,Coordinate} from './incident-mock';
 import {incidentFocusBounds,incidentOverlayData} from './incident-map-data';
+import {singaporeBasemapStyle,singaporeBasemapTiles,singaporeBounds} from '../operations/singapore-basemap';
 
 type Props = {data: IncidentWorkspace; mode: RouteMode; selected: string|null; selectedVehicle: string|null; onSelect:(id:string)=>void; onHover:(id:string|null)=>void; onVehicle:(id:string)=>void; onIncident:()=>void; onEmptyMap:()=>void; incidentCardOpen:boolean; applied:boolean};
 // OneMap's GreyLite MapLibre style uses 128 CSS px per 256 px tile.
 // Its quieter cartography is remapped to graphite in the raster shader only.
-const basemapTiles=['https://www.onemap.gov.sg/maps/tiles/GreyLite/{z}/{x}/{y}.png'];
 const empty: FeatureCollection = {type:'FeatureCollection',features:[]};
 function focusIncident(map:MapLibreMap,data:IncidentWorkspace){
   const camera=map.cameraForBounds(incidentFocusBounds(data),{padding:{top:170,bottom:100,left:80,right:80},maxZoom:14});
@@ -35,8 +35,8 @@ export default function IncidentTacticalMap(props: Props) {
     void import('maplibre-gl').then(({default:maplibregl})=>{
       if(cancelled)return;
       const map=new maplibregl.Map({container:root,center:[incident.location.lng,incident.location.lat],zoom:12,minZoom:10.5,maxZoom:17,
-        maxBounds:[[103.50,1.15],[104.12,1.57]],pitch:0,dragRotate:false,touchPitch:false,attributionControl:false,cooperativeGestures:true,
-        style:{version:8,sources:{onemap:{type:'raster',tiles:basemapTiles,tileSize:128,minzoom:11,maxzoom:19,bounds:[103.502,1.16,104.11475,1.56073]}},layers:[{id:'background',type:'background',paint:{'background-color':'#081216'}},{id:'onemap',type:'raster',source:'onemap',paint:{'raster-saturation':-1,'raster-brightness-min':.66,'raster-brightness-max':.025,'raster-contrast':.05}}]}});
+        maxBounds:singaporeBounds,pitch:0,dragRotate:false,touchPitch:false,attributionControl:false,cooperativeGestures:true,
+        style:singaporeBasemapStyle()});
       mapRef.current=map;markerClass.current=maplibregl.Marker;
       map.touchZoomRotate.disableRotation();
       map.on('click',event=>{if(!(event.originalEvent.target as HTMLElement).closest('.if-geo-marker'))handlers.current.onEmptyMap();});
@@ -123,7 +123,7 @@ export default function IncidentTacticalMap(props: Props) {
     <div ref={container} className="if-maplibre" aria-label="Interactive Singapore map"/>
     <div className="if-map-caption"><span>{data.incident.region}</span><small>{data.incident.area} · Live recovery area</small></div>
     <div className="if-map-controls"><button aria-label="Recenter Incident" onClick={recenter} title="Recenter Incident"><Crosshair/>Recenter Incident</button><div><button aria-label="Zoom in map" onClick={()=>mapRef.current?.zoomIn()}><Plus/></button><button aria-label="Zoom out map" onClick={()=>mapRef.current?.zoomOut()}><Minus/></button></div></div>
-    {(!ready || mapError) && <div className="if-map-message" role="status">{mapError??'Loading Singapore · OneMap'}{mapError && <button onClick={()=>{setMapError(null);(mapRef.current?.getSource('onemap') as RasterTileSource|undefined)?.setTiles(basemapTiles);}}>Retry basemap</button>}</div>}
+    {(!ready || mapError) && <div className="if-map-message" role="status">{mapError??'Loading Singapore · OneMap'}{mapError && <button onClick={()=>{setMapError(null);(mapRef.current?.getSource('onemap') as RasterTileSource|undefined)?.setTiles(singaporeBasemapTiles);}}>Retry basemap</button>}</div>}
     <div className="if-map-legend"><span><i className="affected"/>Affected route</span><span><i className="new"/>{applied?'Applied recovery':'Candidate route'}</span><span><i className="old"/>Base route</span><span><i className="stop"/>Completed / protected</span></div>
     <div className="if-map-attribution"><a href="https://www.onemap.gov.sg/" target="_blank" rel="noreferrer"><img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" alt="OneMap"/>OneMap</a> © contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noreferrer">Singapore Land Authority</a> · Routes © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a></div>
     {(selected||selectedVehicle)&&<div className="if-map-selection">{selected??selectedVehicle}<span>{selected ? `${applied?'Assigned':'Candidate'} vehicle · ${data.affectedOrders.find(order=>order.id===selected)?.assignedTo}`:'Recovery assignments highlighted'}</span></div>}
