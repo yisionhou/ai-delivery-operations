@@ -9,6 +9,7 @@ import {
 import SingaporeScene, { RegionCollection, RegionKey } from "./singapore-scene";
 import type { CameraCommand } from './inspection-camera';
 import IncidentFocusPage from './incidents/incident-focus-page';
+import {incident,incidentWorkspaces} from './incidents/incident-mock';
 
 type AppState = "SINGAPORE_OVERVIEW" | "REGION_FOCUS" | "INCIDENT_FOCUS" | "RECOVERY";
 
@@ -22,7 +23,7 @@ const KPI = [
 const VEHICLES = [
   { id: "V01", status: "On route", pct: 88, route: "Sembawang → City", ok: true },
   { id: "V02", status: "On route", pct: 76, route: "Jurong → Queenstown", ok: true },
-  { id: "V03", status: "Delayed", pct: 42, route: "Tampines → Bedok", ok: false },
+  { id: incident.subject.id, status: "Unavailable", pct: 42, route: "Jurong East → West Coast", ok: false },
   { id: "V04", status: "On route", pct: 91, route: "Changi → City", ok: true },
 ];
 
@@ -46,7 +47,7 @@ function Sidebar({ onIncident, onOverview, incidentActive }: { onIncident: () =>
   return <aside className="nexus-sidebar">
     <div className="nexus-brand"><BrandMark/><span><b>NEXUS</b><small>Delivery Operations</small></span></div>
     <nav>{nav.map(([label, Icon]) => <button key={label} className={(incidentActive ? label === "Incidents" : label === "Overview") ? "active" : ""} aria-current={(incidentActive ? label === "Incidents" : label === "Overview") ? "page" : undefined} onClick={label === "Incidents" ? onIncident : label === "Overview" ? onOverview : undefined}>
-      <Icon/><span>{label}</span>{label === "Incidents" && <em>3</em>}
+      <Icon/><span>{label}</span>{label === "Incidents" && <em>{Object.keys(incidentWorkspaces).length}</em>}
     </button>)}</nav>
     <button className="settings-link"><Settings/><span>Settings</span></button>
   </aside>;
@@ -104,10 +105,10 @@ function VehiclePanel() {
 
 function IncidentPanel({ onIncident }: { onIncident: () => void }) {
   return <section className="bottom-panel incident-panel">
-    <header><h2>Recent Incidents <em>3</em></h2><button>View all <ChevronRight/></button></header>
-    <button className="incident-row" onClick={onIncident}><span className="incident-icon red"><AlertTriangle/></span><span><b>Vehicle unavailable</b><small>V03 · Tampines</small></span><time>10 min ago</time></button>
-    <div className="incident-row"><span className="incident-icon amber"><AlertTriangle/></span><span><b>Traffic delay</b><small>PIE (Tuas → Jurong)</small></span><time>24 min ago</time></div>
-    <div className="incident-row"><span className="incident-icon amber"><CloudRain/></span><span><b>Weather alert</b><small>Heavy rain expected</small></span><time>1 hour ago</time></div>
+    <header><h2>Incidents &amp; Alerts <em>{Object.keys(incidentWorkspaces).length}</em></h2><button>View all <ChevronRight/></button></header>
+    <button className="incident-row" onClick={onIncident}><span className="incident-icon red"><AlertTriangle/></span><span><b>{incident.typeLabel}</b><small>{incident.subject.id} · {incident.area}</small></span><time>{incident.detectedAt}</time></button>
+    <div className="incident-row"><span className="incident-icon amber"><AlertTriangle/></span><span><b>Traffic risk · AT_RISK</b><small>PIE (Tuas → Jurong) · alert only</small></span><time>24 min ago</time></div>
+    <div className="incident-row"><span className="incident-icon amber"><CloudRain/></span><span><b>Weather risk · AT_RISK</b><small>Heavy rain expected · alert only</small></span><time>1 hour ago</time></div>
   </section>;
 }
 
@@ -116,8 +117,8 @@ function AgentPanel({ state }: { state: AppState }) {
   return <section className="bottom-panel agent-panel">
     <header><h2>AI Agent</h2></header>
     <div className="agent-main"><div className="agent-copy">
-      <div className="agent-status"><span>»</span><p><b>{recovery ? "Recovery staged" : "Replanning..."}</b><small>{recovery ? "Incident logic preserved for next integration stage" : "Analyzing 12 affected orders"}</small></p></div>
-      {["Detecting impact", "Generating alternatives", "Optimizing route", "Waiting for your approval"].map((label, index) => <div className={`agent-step ${index < 2 ? "done" : ""}`} key={label}>{index < 2 ? <Check/> : <span/>}{label}</div>)}
+      <div className="agent-status"><span>»</span><p><b>{recovery ? "Recovery staged" : "Recovery review ready"}</b><small>{incident.id} · {incident.affectedOrders} affected orders</small></p></div>
+      {["Impact assessed", "Single candidate generated", "Base comparison ready", "Review in Incidents"].map((label, index) => <div className={`agent-step ${index < 2 ? "done" : ""}`} key={label}>{index < 2 ? <Check/> : <span/>}{label}</div>)}
     </div><div className="agent-sculpture"><i/><i/><i/><i/></div></div>
   </section>;
 }
@@ -126,6 +127,7 @@ export default function OperationsConsole() {
   const [geo, setGeo] = useState<RegionCollection | null>(null);
   const [state, setState] = useState<AppState>("SINGAPORE_OVERVIEW");
   const [incidentActive, setIncidentActive] = useState(false);
+  const [selectedIncidentId,setSelectedIncidentId]=useState(incident.id);
   const [selectedRegion, setSelectedRegion] = useState<RegionKey | null>(null);
   const [hoveredRegion, setHoveredRegion] = useState<RegionKey|null>(null);
   const [cameraBusy,setCameraBusy]=useState(true);
@@ -141,22 +143,23 @@ export default function OperationsConsole() {
 
   const selectRegion = (key:RegionKey) => { setSelectedRegion(key); setState("REGION_FOCUS"); setHoveredRegion(null); };
   const reset = () => { setSelectedRegion(null); setState("SINGAPORE_OVERVIEW"); setHoveredRegion(null); };
-  const stageIncident = () => setIncidentActive(true);
+  const stageIncident = (id=incident.id) => {setSelectedIncidentId(id);setIncidentActive(true);};
 
   return <main className="nexus-app">
-    <Sidebar onIncident={stageIncident} onOverview={() => setIncidentActive(false)} incidentActive={incidentActive}/>
+    <Sidebar onIncident={()=>stageIncident()} onOverview={() => setIncidentActive(false)} incidentActive={incidentActive}/>
     <div className="nexus-main" style={incidentActive ? {display:'none'} : undefined} aria-hidden={incidentActive || undefined}>
       <header className="nexus-header"><div><h1>Good morning, Alex.</h1><p>Everything in motion. We&apos;ll help you keep it that way.</p></div>
         <div className="header-tools"><label><Search/><input aria-label="Search" placeholder="Search order, vehicle, location..."/></label><button aria-label="Notifications"><Bell/></button><span className="user-avatar"><UserRound/></span></div>
       </header>
       <section className="kpi-row">{KPI.map((item) => <KpiCard key={item.label} item={item}/>)}<div className="clock-card"><small>Tue, 27 Aug 2024</small><strong>10:24 AM</strong></div></section>
       <section className={`hero-map ${selectedRegion ? "has-region-focus" : ""}`}>
-        {geo ? <SingaporeScene geo={geo} selectedRegion={selectedRegion} onSelectRegion={selectRegion} onHoverRegion={setHoveredRegion} command={command} onMotionChange={setCameraBusy}/> : <div className="map-loading"><Box/><span>Building Singapore model…</span></div>}
+        {geo ? <SingaporeScene geo={geo} selectedRegion={selectedRegion} onSelectRegion={selectRegion} onHoverRegion={setHoveredRegion} command={command} onMotionChange={setCameraBusy} onIncident={stageIncident}/> : <div className="map-loading"><Box/><span>Building Singapore model…</span></div>}
         <div className="map-vignette"/><MapOverlay state={state} selectedRegion={selectedRegion} hoveredRegion={hoveredRegion} onReset={reset} onViewCommand={viewCommand} cameraBusy={cameraBusy}/>
       </section>
-      <section className="bottom-grid"><VehiclePanel/><IncidentPanel onIncident={stageIncident}/><AgentPanel state={state}/></section>
+      <section className="bottom-grid"><VehiclePanel/><IncidentPanel onIncident={()=>stageIncident()}/><AgentPanel state={state}/></section>
       <div className="sr-only" aria-live="polite">{state}. {selectedRegion ?? "Singapore overview"}.</div>
     </div>
-    <div style={{display:incidentActive ? 'contents' : 'none'}}><IncidentFocusPage/></div>
+    <div style={{display:incidentActive ? 'contents' : 'none'}}><IncidentFocusPage active={incidentActive} data={incidentWorkspaces[selectedIncidentId]}/></div>
   </main>;
 }
+

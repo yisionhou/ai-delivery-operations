@@ -1,0 +1,12 @@
+import {useEffect,useRef,useState} from 'react';
+import {X} from 'lucide-react';
+import type {ModifyRequest} from './incident-types';
+
+export default function DecisionDialog({kind,pending,error,onClose,onReject,onModify}:{kind:'reject'|'modify';pending:boolean;error:string|null;onClose:()=>void;onReject:(reason:string)=>void;onModify:(request:ModifyRequest)=>void}){
+  const dialog=useRef<HTMLDialogElement>(null);
+  const [reason,setReason]=useState(''),[delayCap,setDelayCap]=useState<12|15>(12);
+  useEffect(()=>{const element=dialog.current;const previous=document.activeElement as HTMLElement|null;element?.showModal();return()=>{element?.close();previous?.focus();};},[]);
+  return <dialog ref={dialog} className="if-decision-dialog" onCancel={event=>{event.preventDefault();if(!pending)onClose();}} aria-labelledby="if-dialog-title"><form onSubmit={event=>{event.preventDefault();if(kind==='reject')onReject(reason);else onModify({preserveCompletedWork:true,recoveryVehicles:'KEEP_PROPOSED',maxAdditionalDelayMinutes:delayCap});}}><header><div><small>DISPATCHER REVIEW · MOCK</small><h2 id="if-dialog-title">{kind==='reject'?'Reject recovery candidate':'P0 Modify · Request replan'}</h2></div><button type="button" aria-label="Close decision dialog" onClick={onClose} disabled={pending}><X/></button></header>
+    {kind==='reject'?<label>Reason for rejection<textarea autoFocus required maxLength={400} value={reason} onChange={event=>setReason(event.target.value)} placeholder="Explain why this candidate should not be dispatched."/></label>:<><p>Submit structured constraints for a new single candidate. Review it before approval.</p><label>Maximum additional delay<select autoFocus value={delayCap} onChange={event=>setDelayCap(Number(event.target.value) as 12|15)}><option value={12}>12 minutes</option><option value={15}>15 minutes</option></select></label><div className="if-fixed-constraint">✓ Preserve completed / frozen work<br/>✓ Keep the proposed recovery vehicles</div><p className="if-comparison-note">Demo replan returns a new revision with the same feasible assignments. A real deterministic solver will replace this mock adapter.</p></>}
+    {error&&<p className="if-dialog-error" role="alert">{error}</p>}<footer><button type="button" onClick={onClose} disabled={pending}>Cancel</button><button type="submit" className="if-approve" disabled={pending||(kind==='reject'&&!reason.trim())}>{pending?'Submitting…':kind==='reject'?'Confirm rejection':'Request new candidate'}</button></footer></form></dialog>;
+}

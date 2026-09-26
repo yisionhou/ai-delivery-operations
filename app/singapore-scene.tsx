@@ -18,6 +18,7 @@ import SceneTelemetry from './scene-telemetry';
 import { terrainBoundary, createEdgeFinish, type BoundarySegment } from './terrain-edge';
 import LiftDust from './lift-dust';
 import {NORMAL_VISIBILITY,VisibilityControls,type VisibilitySettings} from './visibility-diagnostics';
+import {incident} from './incidents/incident-mock';
 
 export type RegionKey = "CENTRAL REGION" | "EAST REGION" | "WEST REGION" | "NORTH REGION" | "NORTH-EAST REGION";
 type Position = [number, number];
@@ -185,10 +186,10 @@ function PlaceLabel({at,text}:{at:Position;text:string}) {
   </sprite>;
 }
 
-function IncidentBeacon() {
+function IncidentBeacon({onIncident,gate}:{onIncident?:(id:string)=>void;gate:MutableRefObject<InspectionGate>}) {
   const {height:terrainHeight}=useTerrain();
-  const [x,z]=toScene([103.94,1.35]);
-  return <group position={[x,BASE_DEPTH+terrainHeight(x,-z)+.12,-z]}>
+  const [x,z]=toScene([incident.location.lng,incident.location.lat]);
+  return <group name={`incident-${incident.id}`} position={[x,BASE_DEPTH+terrainHeight(x,-z)+.12,-z]} onClick={event=>{if(gate.current.locked||gate.current.moved||event.delta>=5)return;event.stopPropagation();onIncident?.(incident.id);}}>
     <mesh rotation={[-Math.PI/2,0,0]}><torusGeometry args={[.27,.035,6,28]}/><meshBasicMaterial color="#ff735b"/></mesh>
     <mesh position={[0,.38,0]}><sphereGeometry args={[.13,12,8]}/><meshBasicMaterial color="#ff765e"/></mesh>
     <mesh position={[0,.17,0]}><cylinderGeometry args={[.02,.07,.34,8]}/><meshBasicMaterial color="#ff765e"/></mesh>
@@ -227,7 +228,8 @@ function RouteGeometry({route,feature,emphasis=false}:{route:Route;feature:Regio
   </group>;
 }
 
-function RegionGroup({feature,boundary,selected,muted,hovered,onHover,onSelect,gate,visibility}:{
+function RegionGroup({feature,boundary,selected,muted,hovered,onHover,onSelect,gate,visibility,onIncident}:{
+  onIncident?:(id:string)=>void;
   visibility:VisibilitySettings;
   boundary:BoundarySegment[];
   feature:RegionFeature;selected:boolean;muted:boolean;hovered:boolean;onHover:(key:RegionKey,active:boolean)=>void;onSelect:(key:RegionKey)=>void;gate:MutableRefObject<InspectionGate>;
@@ -324,14 +326,15 @@ function RegionGroup({feature,boundary,selected,muted,hovered,onHover,onSelect,g
       <ArchitecturalDistrict feature={feature}/>
       {ROUTES[key].map((route,i)=><RouteGeometry key={route.id} route={route} feature={feature} emphasis={i===0}/>)}
       {LABELS[key].map((label)=><PlaceLabel key={label.text} {...label}/>)}
-      {key==="EAST REGION"&&<IncidentBeacon/>}
+      {key===incident.regionKey&&<IncidentBeacon onIncident={onIncident} gate={gate}/>}
     </group>
   </>;
 }
 
 // Uniform gain preserves the approved light positions, colors and relative distribution.
 const MAP_LIGHT_GAIN=1.3;
-function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotionChange,visibility}:{
+function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotionChange,visibility,onIncident}:{
+  onIncident?:(id:string)=>void;
   visibility:VisibilitySettings;
   geo:RegionCollection;selectedRegion:RegionKey|null;onSelectRegion:(key:RegionKey)=>void;onHoverRegion:(key:RegionKey|null)=>void;command:CameraCommand;onMotionChange:(busy:boolean)=>void;
 }) {
@@ -363,7 +366,7 @@ function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotion
     </Environment>
     <group position={[0,-.2,0]}>
       {geo.features.map((feature)=><RegionGroup key={feature.properties.REGION_N} feature={feature}
-        visibility={visibility}
+        visibility={visibility} onIncident={onIncident}
         boundary={boundaries[feature.properties.REGION_N]}
         selected={feature.properties.REGION_N===selectedRegion}
         muted={!!selectedRegion&&feature.properties.REGION_N!==selectedRegion}
@@ -381,12 +384,14 @@ function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotion
   </TerrainContext.Provider>;
 }
 
-export default function SingaporeScene({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotionChange}:{
+export default function SingaporeScene({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotionChange,onIncident}:{
+  onIncident?:(id:string)=>void;
   geo:RegionCollection;selectedRegion:RegionKey|null;onSelectRegion:(key:RegionKey)=>void;onHoverRegion:(key:RegionKey|null)=>void;command:CameraCommand;onMotionChange:(busy:boolean)=>void;
 }) {
   const [visibility,setVisibility]=useState(NORMAL_VISIBILITY);
   return <><Canvas className="singapore-canvas" camera={{position:[2.7,27.5,19.6],fov:30,near:.1,far:120}}
     dpr={[1,1.45]} shadows="percentage" gl={{antialias:true,alpha:false,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.2}}>
-    <World geo={geo} selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} onHoverRegion={onHoverRegion} command={command} onMotionChange={onMotionChange} visibility={visibility}/>
+    <World geo={geo} selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} onHoverRegion={onHoverRegion} command={command} onMotionChange={onMotionChange} visibility={visibility} onIncident={onIncident}/>
   </Canvas><VisibilityControls value={visibility} onChange={setVisibility}/></>;
 }
+
