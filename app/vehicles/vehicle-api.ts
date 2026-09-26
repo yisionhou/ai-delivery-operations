@@ -2,7 +2,7 @@ import {z} from 'zod';
 import type {Filter,Fleet,Vehicle,VehicleGateway,VehicleStop} from './vehicle-data';
 
 // Verified against PenroseRoute/backend/app/{api/routes,schemas} on 2026-09-27.
-export class VehicleApiError extends Error{constructor(public code:string,message:string,public status:number){super(message);}}
+export class VehicleApiError extends Error{constructor(code:string,message:string,status:number){super(message);this.code=code;this.status=status;}code:string;status:number;}
 const envelope=z.object({success:z.boolean(),code:z.string(),message:z.string(),data:z.unknown()});
 const pagination=<T extends z.ZodTypeAny>(item:T)=>z.object({items:z.array(item),page:z.number(),page_size:z.number(),total:z.number(),total_pages:z.number()});
 const location=z.object({id:z.string(),display_name:z.string(),address_text:z.string().nullable(),latitude:z.number(),longitude:z.number()});
