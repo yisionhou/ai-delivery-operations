@@ -14,7 +14,7 @@ export default function LiftDust({selectedRegion,geo,visibility,layouts}:{select
   const mist=useMemo(()=>createSupportMist(),[]);
   const anchors=useMemo(()=>Object.fromEntries(geo.features.map(f=>[f.properties.REGION_N,supportAnchors(f,LOCAL_MIST_SITES)])),[geo]);
   const cueAnchors=useMemo(()=>Object.fromEntries(geo.features.map(f=>[f.properties.REGION_N,supportAnchors(f)])),[geo]);
-  const previous=useRef<string|null>(null),source=useRef<THREE.Object3D|null>(null),emission=useRef(0),telemetry=useRef(0);
+  const previous=useRef<string|null>(null),source=useRef<THREE.Object3D|null>(null),emission=useRef(0),telemetry=useRef(0),dustWasActive=useRef(false);
   const cues=useRef<Array<THREE.PointLight|null>>([]);
   const direction=useMemo(()=>new THREE.Vector3(),[]),point=useMemo(()=>new THREE.Vector3(),[]);
   const dustGeometry=useMemo(()=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(dust.positions,3).setUsage(THREE.DynamicDrawUsage));g.setAttribute('aAlpha',new THREE.BufferAttribute(dust.alpha,1).setUsage(THREE.DynamicDrawUsage));return g;},[dust]);
@@ -44,16 +44,23 @@ export default function LiftDust({selectedRegion,geo,visibility,layouts}:{select
       const goal=layouts[selectedRegion].translation.clone().setY(.76);
       if(source.current.position.distanceTo(goal)<.02)state.release();
     }
-    dustGeometry.setDrawRange(0,visibility.support?dust.alpha.length:0);dustGeometry.attributes.position.needsUpdate=true;dustGeometry.attributes.aAlpha.needsUpdate=true;dustGeometry.computeBoundingSphere();
+    dustGeometry.setDrawRange(0,visibility.support?dust.alpha.length:0);
+    if(dust.active>0){
+      dustGeometry.attributes.position.needsUpdate=true;
+      dustGeometry.attributes.aAlpha.needsUpdate=true;
+      dustGeometry.computeBoundingSphere();
+    }else if(dustWasActive.current){
+      dustGeometry.attributes.aAlpha.needsUpdate=true;
+    }
+    dustWasActive.current=dust.active>0;
     dustMaterial.uniforms.uDpr.value=gl.getPixelRatio();
     mist.update(state,visibility.support);
-    gl.domElement.dataset.mist=String(mist.geometry.instanceCount);
     // Deliberate, economical underside bounce approximation; not glow pretending to illuminate geometry.
     const latest=state.banks.at(-1);
     cues.current.forEach((light,i)=>{if(!light)return;light.intensity=latest&&visibility.support?state.opacity(latest)*.65:0;
       if(latest){const a=cueAnchors[latest.region][i?4:1];light.position.set(a.x+a.nx*.15,-.12,a.z+a.nz*.15).applyMatrix4(latest.matrix);}
     });
-    telemetry.current+=dt;if(telemetry.current>.1){telemetry.current=0;gl.domElement.dataset.support=JSON.stringify({enabled:visibility.support,transitions:state.serial,emitting:state.current?.id??null,lineVertices:0,mistInstances:mist.geometry.instanceCount,residuals:dust.active,residualBirths:dust.cursor,banks:state.banks.map(b=>({id:b.id,region:b.region,phase:state.phase(b),alpha:state.opacity(b),matrixPosition:[b.matrix.elements[12],b.matrix.elements[13],b.matrix.elements[14]],anchor:point.set(b.anchors[0].x,-.14,b.anchors[0].z).applyMatrix4(b.matrix).toArray()}))});}
+    telemetry.current+=dt;if(telemetry.current>.5){telemetry.current=0;gl.domElement.dataset.mist=String(mist.geometry.instanceCount);gl.domElement.dataset.support=JSON.stringify({enabled:visibility.support,transitions:state.serial,emitting:state.current?.id??null,lineVertices:0,mistInstances:mist.geometry.instanceCount,residuals:dust.active,residualBirths:dust.cursor,banks:state.banks.map(b=>({id:b.id,region:b.region,phase:state.phase(b),alpha:state.opacity(b),matrixPosition:[b.matrix.elements[12],b.matrix.elements[13],b.matrix.elements[14]],anchor:point.set(b.anchors[0].x,-.14,b.anchors[0].z).applyMatrix4(b.matrix).toArray()}))});}
   });
   return <><mesh name="levitation-support-mist" geometry={mist.geometry} material={mist.material} raycast={noDecorationRaycast} frustumCulled={false}/><points name="released-support-dust" geometry={dustGeometry} material={dustMaterial} raycast={noDecorationRaycast}/>
     {[0,1].map(i=><pointLight key={i} ref={light=>{cues.current[i]=light;}} color="#E8DDC3" intensity={0} distance={3.2} decay={2}/>)}</>;

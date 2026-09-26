@@ -31,6 +31,7 @@ export default function InspectionCamera({selectedRegion,layouts,command,gate,on
   const controls=useRef<OrbitControls|null>(null);
   const lookAt=useRef(new THREE.Vector3(.7,0,0));
   const motion=useRef({elapsed:0,automatic:true,selection:true});
+  const diagnostics=useRef(0);
   const previousRegion=useRef<string|null>(null);
   const zoomGoal=useRef<{position:THREE.Vector3;target:THREE.Vector3}|null>(null);
   const layout=selectedRegion?layouts[selectedRegion]:undefined;
@@ -108,10 +109,14 @@ export default function InspectionCamera({selectedRegion,layouts,command,gate,on
       camera.position.copy(proxy.position).add(offset);
       lookAt.current.copy(orbit.target).add(offset);camera.lookAt(lookAt.current);
     }
-    // Readable browser diagnostics for regression checks, without exposing internal scene objects.
-    gl.domElement.dataset.inspection=gate.current.locked?'locked':'ready';
-    gl.domElement.dataset.cameraPosition=camera.position.toArray().map(n=>n.toFixed(3)).join(',');
-    gl.domElement.dataset.orbitPivot=orbit.target.toArray().map(n=>n.toFixed(3)).join(',');
+    // Readable browser diagnostics; sampling does not need to run at render frequency.
+    diagnostics.current+=delta;
+    if(diagnostics.current>=.25){
+      diagnostics.current=0;
+      gl.domElement.dataset.inspection=gate.current.locked?'locked':'ready';
+      gl.domElement.dataset.cameraPosition=camera.position.toArray().map(n=>n.toFixed(3)).join(',');
+      gl.domElement.dataset.orbitPivot=orbit.target.toArray().map(n=>n.toFixed(3)).join(',');
+    }
   });
   return null;
 }

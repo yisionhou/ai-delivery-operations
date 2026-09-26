@@ -21,7 +21,7 @@ export default function BaseMist({geo,focused,enabled}:{geo:RegionCollection;foc
         gl_Position=projectionMatrix*modelViewMatrix*vec4(aCenter+vec3(q.x,0.,q.y),1.);}`;
     bed.material.fragmentShader=bed.material.fragmentShader.replace('dot(warp,warp)*2.8','dot(warp,warp)*1.9');
     return bed;
-  },[]),time=useRef(0),strength=useRef(1);
+  },[]),time=useRef(0),strength=useRef(1),diagnostics=useRef(0);
   const sites=useMemo(()=>geo.features.flatMap(f=>supportAnchors(f,12)),[geo]);
   useEffect(()=>()=>cloud.dispose(),[cloud]);
   useFrame(({gl},dt)=>{
@@ -35,7 +35,8 @@ export default function BaseMist({geo,focused,enabled}:{geo:RegionCollection;foc
     });
     cloud.material.uniforms.uTime.value=time.current*.23;
     cloud.geometry.instanceCount=enabled?sites.length:0;centers.needsUpdate=true;params.needsUpdate=true;
-    gl.domElement.dataset.baseMist=JSON.stringify({instances:cloud.geometry.instanceCount,strength:strength.current,worldSpace:true});
+    diagnostics.current+=dt;
+    if(diagnostics.current>=.5){diagnostics.current=0;gl.domElement.dataset.baseMist=JSON.stringify({instances:cloud.geometry.instanceCount,strength:strength.current,worldSpace:true});}
   });
   return <mesh name="global-gold-cloud-foundation" geometry={cloud.geometry} material={cloud.material} raycast={noDecorationRaycast} frustumCulled={false}/>;
 }

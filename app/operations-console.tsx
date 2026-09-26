@@ -128,7 +128,11 @@ export default function OperationsConsole() {
   const [geo, setGeo] = useState<RegionCollection | null>(null);
   const [state, setState] = useState<AppState>("SINGAPORE_OVERVIEW");
   const [activePage,setActivePage]=useState<'overview'|'operations'|'incidents'>('overview');
+  const [visitedOperations,setVisitedOperations]=useState(false);
+  const [visitedIncidents,setVisitedIncidents]=useState(false);
+  const [documentVisible,setDocumentVisible]=useState(true);
   const [recoveryRevision,setRecoveryRevision]=useState(0);
+  const [operationsRevision,setOperationsRevision]=useState(0);
   const [selectedIncidentId,setSelectedIncidentId]=useState(incident.id);
   const [selectedRegion, setSelectedRegion] = useState<RegionKey | null>(null);
   const [hoveredRegion, setHoveredRegion] = useState<RegionKey|null>(null);
@@ -143,26 +147,33 @@ export default function OperationsConsole() {
     ]).then(([regions,coastlines])=>setGeo({...regions,features:regions.features.map(feature=>({...feature,properties:{...feature.properties,COASTLINES:coastlines[feature.properties.REGION_N]}}))}));
   }, []);
 
+  useEffect(()=>{
+    const update=()=>setDocumentVisible(!document.hidden);
+    document.addEventListener('visibilitychange',update);
+    return()=>document.removeEventListener('visibilitychange',update);
+  },[]);
+
   const selectRegion = (key:RegionKey) => { setSelectedRegion(key); setState("REGION_FOCUS"); setHoveredRegion(null); };
   const reset = () => { setSelectedRegion(null); setState("SINGAPORE_OVERVIEW"); setHoveredRegion(null); };
-  const stageIncident = (id=incident.id) => {if(!incidentWorkspaces[id])return;setSelectedIncidentId(id);setActivePage('incidents');};
+  const stageIncident = (id=incident.id) => {if(!incidentWorkspaces[id])return;setSelectedIncidentId(id);setVisitedIncidents(true);setActivePage('incidents');};
+  const openOperations=()=>{setOperationsRevision(recoveryRevision);setVisitedOperations(true);setActivePage('operations');};
 
   return <main className={`nexus-app page-${activePage}`}>
-    <Sidebar onIncident={()=>stageIncident()} onOverview={() => setActivePage('overview')} onOperations={()=>setActivePage('operations')} activePage={activePage}/>
+    <Sidebar onIncident={()=>stageIncident()} onOverview={() => setActivePage('overview')} onOperations={openOperations} activePage={activePage}/>
     <div className="nexus-main" style={activePage!=='overview' ? {display:'none'} : undefined} aria-hidden={activePage!=='overview' || undefined}>
       <header className="nexus-header"><div><h1>Good morning, Alex.</h1><p>Everything in motion. We&apos;ll help you keep it that way.</p></div>
         <div className="header-tools"><label><Search/><input aria-label="Search" placeholder="Search order, vehicle, location..."/></label><button aria-label="Notifications"><Bell/></button><span className="user-avatar"><UserRound/></span></div>
       </header>
       <section className="kpi-row">{KPI.map((item) => <KpiCard key={item.label} item={item}/>)}<div className="clock-card"><small>Tue, 27 Aug 2024</small><strong>10:24 AM</strong></div></section>
       <section className={`hero-map ${selectedRegion ? "has-region-focus" : ""}`}>
-        {geo ? <SingaporeScene geo={geo} selectedRegion={selectedRegion} onSelectRegion={selectRegion} onHoverRegion={setHoveredRegion} command={command} onMotionChange={setCameraBusy} onIncident={stageIncident}/> : <div className="map-loading"><Box/><span>Building Singapore model…</span></div>}
+        {geo ? <SingaporeScene active={activePage==='overview'&&documentVisible} geo={geo} selectedRegion={selectedRegion} onSelectRegion={selectRegion} onHoverRegion={setHoveredRegion} command={command} onMotionChange={setCameraBusy} onIncident={stageIncident}/> : <div className="map-loading"><Box/><span>Building Singapore model…</span></div>}
         <div className="map-vignette"/><MapOverlay state={state} selectedRegion={selectedRegion} hoveredRegion={hoveredRegion} onReset={reset} onViewCommand={viewCommand} cameraBusy={cameraBusy}/>
       </section>
       <section className="bottom-grid"><VehiclePanel/><IncidentPanel onIncident={()=>stageIncident()}/><AgentPanel state={state}/></section>
       <div className="sr-only" aria-live="polite">{state}. {selectedRegion ?? "Singapore overview"}.</div>
     </div>
-    <div style={{display:activePage==='operations' ? 'contents' : 'none'}}><OperationsPage key={recoveryRevision} onOpenIncident={stageIncident} recoveryRevision={recoveryRevision}/></div>
-    <div style={{display:activePage==='incidents' ? 'contents' : 'none'}}><IncidentFocusPage active={activePage==='incidents'} data={incidentWorkspaces[selectedIncidentId]} onRecoveryApplied={()=>setRecoveryRevision(value=>value+1)}/></div>
+    {visitedOperations&&<div style={{display:activePage==='operations' ? 'contents' : 'none'}}><OperationsPage key={operationsRevision} active={activePage==='operations'&&documentVisible} onOpenIncident={stageIncident} recoveryRevision={recoveryRevision}/></div>}
+    {visitedIncidents&&<div style={{display:activePage==='incidents' ? 'contents' : 'none'}}><IncidentFocusPage active={activePage==='incidents'} data={incidentWorkspaces[selectedIncidentId]} onRecoveryApplied={()=>setRecoveryRevision(value=>value+1)}/></div>}
   </main>;
 }
 

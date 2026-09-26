@@ -7,7 +7,7 @@ import type {FeatureCollection,Feature} from 'geojson';
 import type {OperationsSnapshot,Route,Coordinate} from './operations-data';
 import {singaporeBasemapStyle,singaporeBounds} from './singapore-basemap';
 
-type Props={snapshot:OperationsSnapshot;mode:'planning'|'live';selectedRoute:string|null;onSelectRoute:(id:string)=>void;onOpenIncident:(id:string)=>void};
+type Props={active:boolean;snapshot:OperationsSnapshot;mode:'planning'|'live';selectedRoute:string|null;onSelectRoute:(id:string)=>void;onOpenIncident:(id:string)=>void};
 const center:Coordinate=[103.842,1.323];
 function lines(routes:Route[],mode:Props['mode']):FeatureCollection{
   const features:Feature[]=[];
@@ -23,13 +23,13 @@ function pointAlong(path:Coordinate[],fraction:number):Coordinate{
   const index=Math.floor(at),progress=at-index;
   return [path[index][0]+(path[index+1][0]-path[index][0])*progress,path[index][1]+(path[index+1][1]-path[index][1])*progress];
 }
-export default function OperationsMap({snapshot,mode,selectedRoute,onSelectRoute,onOpenIncident}:Props){
-  const root=useRef<HTMLDivElement>(null),mapRef=useRef<MapLibreMap|null>(null),markerRef=useRef<Marker[]>([]),markerType=useRef<typeof import('maplibre-gl').Marker|null>(null),handlers=useRef({onSelectRoute,onOpenIncident});
-  const [ready,setReady]=useState(false),[error,setError]=useState<string|null>(null),[tick,setTick]=useState(0);
+export default function OperationsMap({active,snapshot,mode,selectedRoute,onSelectRoute,onOpenIncident}:Props){
+  const root=useRef<HTMLDivElement>(null),mapRef=useRef<MapLibreMap|null>(null),staticMarkers=useRef<Marker[]>([]),vehicleMarkers=useRef(new Map<string,Marker>()),markerType=useRef<typeof import('maplibre-gl').Marker|null>(null),handlers=useRef({onSelectRoute,onOpenIncident}),startedAt=useRef(0);
+  const [ready,setReady]=useState(false),[error,setError]=useState<string|null>(null);
   useEffect(()=>{handlers.current={onSelectRoute,onOpenIncident};},[onSelectRoute,onOpenIncident]);
-  useEffect(()=>{if(mode!=='live')return;const timer=window.setInterval(()=>setTick(value=>value+1),1000);return()=>window.clearInterval(timer);},[mode]);
   useEffect(()=>{
-    let cancelled=false;const element=root.current!;let observer:ResizeObserver|undefined;
+    let cancelled=false;const element=root.current!,vehicles=vehicleMarkers.current;let observer:ResizeObserver|undefined;
+    startedAt.current=Date.now();
     void import('maplibre-gl').then(({default:maplibregl})=>{
       if(cancelled)return;
       const map=new maplibregl.Map({container:element,center,zoom:10.9,minZoom:10,maxZoom:17,maxBounds:singaporeBounds,pitch:0,dragRotate:false,touchPitch:false,attributionControl:false,cooperativeGestures:true,style:singaporeBasemapStyle()});
@@ -38,7 +38,7 @@ export default function OperationsMap({snapshot,mode,selectedRoute,onSelectRoute
       map.on('sourcedata',event=>{if(event.sourceId==='onemap'&&event.isSourceLoaded)setError(null);});
       map.on('load',()=>{
         if(cancelled)return;
-        map.addSource('operation-routes',{type:'geojson',data:lines([],mode)});
+        map.addSource('operation-routes',{type:'geojson',data:lines([],'planning')});
         map.addLayer({id:'operation-route-glow',type:'line',source:'operation-routes',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['match',['get','kind'],'pickup','#e9e6da','delivery','#a7ddb0','#d8bb79'],'line-width':11,'line-opacity':.17,'line-blur':6}});
         map.addLayer({id:'operation-route-planned',type:'line',source:'operation-routes',filter:['==',['get','kind'],'planned'],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#e1be7c','line-width':3,'line-opacity':.85}});
         map.addLayer({id:'operation-route-pickup',type:'line',source:'operation-routes',filter:['==',['get','kind'],'pickup'],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#f0efe8','line-width':3,'line-opacity':.95,'line-dasharray':[2,1.5]}});
@@ -48,32 +48,55 @@ export default function OperationsMap({snapshot,mode,selectedRoute,onSelectRoute
       });
       observer=new ResizeObserver(()=>map.resize());observer.observe(element);
     }).catch(()=>{if(!cancelled)setError('The map could not start. Reload to retry.');});
-    return()=>{cancelled=true;observer?.disconnect();markerRef.current.forEach(marker=>marker.remove());markerRef.current=[];mapRef.current?.remove();mapRef.current=null;};
-  },[mode]);
+    return()=>{cancelled=true;observer?.disconnect();staticMarkers.current.forEach(marker=>marker.remove());staticMarkers.current=[];vehicles.forEach(marker=>marker.remove());vehicles.clear();mapRef.current?.remove();mapRef.current=null;};
+  },[]);
+  useEffect(()=>{
+    const map=mapRef.current;if(!ready||!map)return;
+    if(!active){map.stop();return;}
+    const frame=window.requestAnimationFrame(()=>map.resize());
+    return()=>window.cancelAnimationFrame(frame);
+  },[active,ready]);
   useEffect(()=>{
     const map=mapRef.current;if(!ready||!map)return;
     (map.getSource('operation-routes') as GeoJSONSource).setData(lines(mode==='planning'&&!snapshot.plan?[]:snapshot.routes,mode));
-    markerRef.current.forEach(marker=>marker.remove());markerRef.current=[];
+    staticMarkers.current.forEach(marker=>marker.remove());staticMarkers.current=[];
+    vehicleMarkers.current.forEach(marker=>marker.remove());vehicleMarkers.current.clear();
     const MapMarker=markerType.current;if(!MapMarker)return;
       const add=(coordinate:Coordinate,className:string,label:string,onClick?:()=>void)=>{
         const element=document.createElement(onClick?'button':'div');element.className=`ops-marker ${className}`;element.title=label;element.setAttribute('aria-label',label);
         if(onClick){element.setAttribute('type','button');element.onclick=event=>{event.stopPropagation();onClick();};}
-        const marker=new MapMarker({element,anchor:'center'}).setLngLat(coordinate).addTo(map);markerRef.current.push(marker);
+        return new MapMarker({element,anchor:'center'}).setLngLat(coordinate).addTo(map);
       };
-      snapshot.routes.forEach(route=>{
-        route.stops.forEach(stop=>add(stop.point,`ops-marker-${stop.kind.toLowerCase()} ${stop.risk==='AT_RISK'&&mode==='live'?'risk':''}`,`${stop.kind} ${stop.order} · ${stop.place}`,()=>handlers.current.onSelectRoute(route.id)));
+      snapshot.routes.forEach((route,index)=>{
+        route.stops.forEach(stop=>staticMarkers.current.push(add(stop.point,`ops-marker-${stop.kind.toLowerCase()} ${stop.risk==='AT_RISK'&&mode==='live'?'risk':''}`,`${stop.kind} ${stop.order} · ${stop.place}`,()=>handlers.current.onSelectRoute(route.id))));
         if(mode==='live'){
           // Demo animation is intentionally visual only; ETA/risk come from the fixture.
-          const phase=route.status==='UNAVAILABLE'?.63:((tick/120+snapshot.routes.indexOf(route)*.19)%1);
-          add(pointAlong(route.path,phase),`ops-marker-vehicle ${route.status==='UNAVAILABLE'?'incident':route.status==='AT_RISK'?'risk':''} ${selectedRoute===route.id?'selected':''}`,`${route.vehicle} · simulated position`,()=>handlers.current.onSelectRoute(route.id));
+          const phase=route.status==='UNAVAILABLE'?.63:((Math.floor((Date.now()-startedAt.current)/1000)/120+index*.19)%1);
+          vehicleMarkers.current.set(route.id,add(pointAlong(route.path,phase),`ops-marker-vehicle ${route.status==='UNAVAILABLE'?'incident':route.status==='AT_RISK'?'risk':''}`,`${route.vehicle} · simulated position`,()=>handlers.current.onSelectRoute(route.id)));
         }
       });
       if(mode==='live'){
         const incident=snapshot.alerts.find(alert=>alert.incidentId);
         const route=snapshot.routes.find(item=>item.vehicle===incident?.vehicle);
-        if(incident?.incidentId&&route)add(pointAlong(route.path,.63),'ops-marker-incident',`${incident.title} · ${incident.incidentId}`,()=>handlers.current.onOpenIncident(incident.incidentId!));
+        if(incident?.incidentId&&route)staticMarkers.current.push(add(pointAlong(route.path,.63),'ops-marker-incident',`${incident.title} · ${incident.incidentId}`,()=>handlers.current.onOpenIncident(incident.incidentId!)));
       }
-  },[ready,snapshot,mode,selectedRoute,tick]);
+  },[ready,snapshot,mode]);
+  useEffect(()=>{
+    vehicleMarkers.current.forEach((marker,id)=>marker.getElement().classList.toggle('selected',id===selectedRoute));
+  },[ready,snapshot,mode,selectedRoute]);
+  useEffect(()=>{
+    if(!active||!ready||mode!=='live')return;
+    const update=()=>{
+      const tick=Math.floor((Date.now()-startedAt.current)/1000);
+      snapshot.routes.forEach((route,index)=>{
+        if(route.status==='UNAVAILABLE')return;
+        vehicleMarkers.current.get(route.id)?.setLngLat(pointAlong(route.path,(tick/120+index*.19)%1));
+      });
+    };
+    update();
+    const timer=window.setInterval(update,1000);
+    return()=>window.clearInterval(timer);
+  },[active,ready,mode,snapshot.routes]);
   return <div className="ops-map-wrap">
     <div ref={root} className="ops-map-canvas" aria-label="Interactive Singapore operations map"/>
     <div className="ops-map-shade"/>

@@ -384,12 +384,13 @@ function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotion
   </TerrainContext.Provider>;
 }
 
-export default function SingaporeScene({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotionChange,onIncident}:{
+export default function SingaporeScene({active,geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotionChange,onIncident}:{
+  active:boolean;
   onIncident?:(id:string)=>void;
   geo:RegionCollection;selectedRegion:RegionKey|null;onSelectRegion:(key:RegionKey)=>void;onHoverRegion:(key:RegionKey|null)=>void;command:CameraCommand;onMotionChange:(busy:boolean)=>void;
 }) {
   const [visibility,setVisibility]=useState(NORMAL_VISIBILITY);
-  return <><Canvas className="singapore-canvas" camera={{position:[2.7,27.5,19.6],fov:30,near:.1,far:120}}
+  return <><Canvas className="singapore-canvas" camera={{position:[2.7,27.5,19.6],fov:30,near:.1,far:120}} frameloop={active?'always':'never'}
     dpr={[1,1.45]} shadows="percentage" gl={{antialias:true,alpha:false,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.2}}>
     <World geo={geo} selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} onHoverRegion={onHoverRegion} command={command} onMotionChange={onMotionChange} visibility={visibility} onIncident={onIncident}/>
   </Canvas><VisibilityControls value={visibility} onChange={setVisibility}/></>;
