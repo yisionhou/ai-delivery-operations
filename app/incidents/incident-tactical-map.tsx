@@ -1,17 +1,15 @@
 "use client";
-/* eslint-disable @next/next/no-img-element -- OneMap requires its provider logo in map attribution. */
+
 
 import {useEffect,useRef,useState} from 'react';
 import {Crosshair, Minus, Plus} from 'lucide-react';
-import type {Map as MapLibreMap, Marker, GeoJSONSource, RasterTileSource, ExpressionSpecification} from 'maplibre-gl';
+import type {Map as MapLibreMap, Marker, GeoJSONSource, VectorTileSource, ExpressionSpecification} from 'maplibre-gl';
 import type {FeatureCollection} from 'geojson';
 import type {IncidentWorkspace,RouteMode,Coordinate} from './incident-mock';
 import {incidentFocusBounds,incidentOverlayData} from './incident-map-data';
+import {createOperationalMapStyle,OPERATIONAL_TILEJSON,roadAccentData,operationalRouteStyle} from './operational-map-style';
 
 type Props = {data: IncidentWorkspace; mode: RouteMode; selected: string|null; selectedVehicle: string|null; onSelect:(id:string)=>void; onHover:(id:string|null)=>void; onVehicle:(id:string)=>void; onIncident:()=>void; onEmptyMap:()=>void; incidentCardOpen:boolean; applied:boolean};
-// OneMap's GreyLite MapLibre style uses 128 CSS px per 256 px tile.
-// Its quieter cartography is remapped to graphite in the raster shader only.
-const basemapTiles=['https://www.onemap.gov.sg/maps/tiles/GreyLite/{z}/{x}/{y}.png'];
 const empty: FeatureCollection = {type:'FeatureCollection',features:[]};
 function focusIncident(map:MapLibreMap,data:IncidentWorkspace){
   const camera=map.cameraForBounds(incidentFocusBounds(data),{padding:{top:170,bottom:100,left:80,right:80},maxZoom:14});
@@ -36,28 +34,36 @@ export default function IncidentTacticalMap(props: Props) {
       if(cancelled)return;
       const map=new maplibregl.Map({container:root,center:[incident.location.lng,incident.location.lat],zoom:12,minZoom:10.5,maxZoom:17,
         maxBounds:[[103.50,1.15],[104.12,1.57]],pitch:0,dragRotate:false,touchPitch:false,attributionControl:false,cooperativeGestures:true,
-        style:{version:8,sources:{onemap:{type:'raster',tiles:basemapTiles,tileSize:128,minzoom:11,maxzoom:19,bounds:[103.502,1.16,104.11475,1.56073]}},layers:[{id:'background',type:'background',paint:{'background-color':'#081216'}},{id:'onemap',type:'raster',source:'onemap',paint:{'raster-saturation':-1,'raster-brightness-min':.66,'raster-brightness-max':.025,'raster-contrast':.05}}]}});
+        style:createOperationalMapStyle()});
       mapRef.current=map;markerClass.current=maplibregl.Marker;
       map.touchZoomRotate.disableRotation();
       map.on('click',event=>{if(!(event.originalEvent.target as HTMLElement).closest('.if-geo-marker'))handlers.current.onEmptyMap();});
       const diagnostics=()=>{root.dataset.center=JSON.stringify(map.getCenter().toArray());root.dataset.zoom=String(map.getZoom());};
       map.on('move',diagnostics);diagnostics();
-      map.on('error',()=>setMapError('OneMap is unavailable. Check your connection and retry.'));
-      map.on('sourcedata',event=>{if(event.sourceId==='onemap' && event.isSourceLoaded){setMapError(null);root.dataset.basemapLoaded='true';}});
+      map.on('error',()=>setMapError('Map detail is temporarily unavailable. Retry the basemap.'));
+      let accentKey='';
+      map.on('idle',()=>{
+        if(!map.getLayer('nexus-roads-major'))return;
+        const accents=roadAccentData(map),key=JSON.stringify(accents);
+        if(key!==accentKey){accentKey=key;(map.getSource('nexus-road-lights') as GeoJSONSource).setData(accents);}
+        root.dataset.roadAccents=String(accents.features.length);
+      });
+      map.on('sourcedata',event=>{if(event.sourceId==='nexus-base' && event.isSourceLoaded){setMapError(null);root.dataset.basemapLoaded='true';}});
       map.on('load',()=>{
         if(cancelled)return;
         map.addSource('routes',{type:'geojson',data:empty});
         map.addSource('selected-routes',{type:'geojson',data:empty});
         const addLine=(id:string,kind:string,color:string,width:number,opacity:number,source='routes',dash?:number[],blur=0)=>map.addLayer({id,type:'line',source,filter:['==',['get','kind'],kind],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':color,'line-width':width,'line-opacity':opacity,'line-blur':blur,...(dash ? {'line-dasharray':dash} : {})}});
-        addLine('completed','completed','#8ac7b0',2.6,.65);
-        addLine('original','original','#c6b798',2.4,.45);
-        addLine('recovery-glow','recovery','#edcf90',16,.18,'routes',undefined,6);
-        addLine('recovery','recovery','#ffe2a5',3.5,.95);
-        addLine('affected-outer','affected','#ff624f',24,.12,'routes',undefined,10);
-        addLine('affected-middle','affected','#ff624f',11,.24,'routes',undefined,4);
-        addLine('affected','affected','#ff7261',4,.98,'routes',[1.5,1.1]);
+        const palette=operationalRouteStyle;
+        addLine('completed','completed',palette.completed.color,palette.completed.width,palette.completed.opacity);
+        addLine('original','original',palette.base.color,palette.base.width,palette.base.opacity);
+        for(const [kind,style] of [['recovery',palette.candidate],['affected',palette.affected]] as const){
+          addLine(`${kind}-outer`,kind,style.color,style.outerWidth,style.outerOpacity,'routes',undefined,style.outerBlur);
+          addLine(`${kind}-glow`,kind,style.color,style.glowWidth,style.glowOpacity,'routes',undefined,style.glowBlur);
+          addLine(kind,kind,style.color,style.width,style.opacity,'routes',kind==='affected'?[1.5,1.1]:undefined);
+        }
         // A small screen-space offset keeps coincident real-road proposals legible.
-        for(const id of ['recovery-glow','recovery'])map.setPaintProperty(id,'line-offset',4);
+        for(const id of ['recovery-outer','recovery-glow','recovery'])map.setPaintProperty(id,'line-offset',4);
         addLine('selected-old','old','#ffad95',4,.95,'selected-routes',[2,1]);
         addLine('selected-new','recovery','#fff1cc',4.5,.98,'selected-routes');
         map.setPaintProperty('selected-new','line-offset',4);
@@ -78,7 +84,12 @@ export default function IncidentTacticalMap(props: Props) {
           const element=document.createElement(onClick?'button':'div');element.className=`if-geo-marker if-geo-${kind}`;element.dataset.entity=id;
           element.setAttribute('aria-label',label);element.title=label;
           if(onClick){element.setAttribute('type','button');element.onclick=event=>{event.stopPropagation();onClick();};}
-          const dot=document.createElement('span');dot.className='if-geo-dot';dot.textContent=kind==='incident'?'!':kind==='completed'?'✓':kind==='vehicle'?'▰':'';element.appendChild(dot);
+          const dot=document.createElement('span');dot.className='if-geo-dot';dot.textContent=kind==='incident'?'!':kind==='completed'?'✓':'';element.appendChild(dot);
+          if(kind==='vehicle'){
+            const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.6');svg.setAttribute('aria-hidden','true');
+            const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d','M3 5h12v12H3z M15 9h4l3 4v4h-7 M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4 M18 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4');svg.appendChild(path);dot.appendChild(svg);
+          }
+
           if(kind!=='completed'){const text=document.createElement('b');text.textContent=id;const detail=document.createElement('small');detail.textContent=kind==='incident'?incident.typeLabel:kind==='vehicle'?recoveryVehicles.find(item=>item.id===id)?.detail??'':data.comparison.etaChanges.find(item=>item.orderId===id)?.oldEta??'';text.appendChild(detail);element.appendChild(text);}
           if(kind==='order'){element.onmouseenter=()=>handlers.current.onHover(id);element.onmouseleave=()=>handlers.current.onHover(null);element.onfocus=()=>handlers.current.onHover(id);element.onblur=()=>handlers.current.onHover(null);}
           const marker=new MarkerType({element,anchor:'center'}).setLngLat(coordinate).addTo(map);markers.current.push({marker,element,id,kind,vehicle});
@@ -101,10 +112,10 @@ export default function IncidentTacticalMap(props: Props) {
     const newLine=selected ? data.routeGeometry.orders[selected]?.recovery : selectedVehicle ? data.routeGeometry.recovery[selectedVehicle] : null;
     const features=[...(oldLine?[{type:'Feature' as const,geometry:oldLine,properties:{kind:'old'}}]:[]),...(newLine?[{type:'Feature' as const,geometry:newLine,properties:{kind:'recovery'}}]:[])];
     (map.getSource('selected-routes') as GeoJSONSource).setData({type:'FeatureCollection',features});
-    map.setPaintProperty('onemap','raster-opacity',mode==='changes'?.42:1);
+    map.setPaintProperty('nexus-context-dimmer','background-opacity',mode==='changes'?.58:0);
     map.setPaintProperty('original','line-opacity',selected?.17:mode==='current'?.95:.36);
     map.setPaintProperty('completed','line-opacity',mode==='changes'?0:.5);
-    for(const id of ['recovery','recovery-glow','selected-new'])map.setLayoutProperty(id,'visibility',mode==='current'?'none':'visible');
+    for(const id of ['recovery','recovery-glow','recovery-outer','selected-new'])map.setLayoutProperty(id,'visibility',mode==='current'?'none':'visible');
     const opacity: ExpressionSpecification=['case',['==',['get','vehicle'],focusedVehicle??''],.95,focusedVehicle?.22:.9];
     map.setPaintProperty('recovery','line-opacity',opacity);
     for(const item of markers.current){
@@ -123,11 +134,9 @@ export default function IncidentTacticalMap(props: Props) {
     <div ref={container} className="if-maplibre" aria-label="Interactive Singapore map"/>
     <div className="if-map-caption"><span>{data.incident.region}</span><small>{data.incident.area} · Live recovery area</small></div>
     <div className="if-map-controls"><button aria-label="Recenter Incident" onClick={recenter} title="Recenter Incident"><Crosshair/>Recenter Incident</button><div><button aria-label="Zoom in map" onClick={()=>mapRef.current?.zoomIn()}><Plus/></button><button aria-label="Zoom out map" onClick={()=>mapRef.current?.zoomOut()}><Minus/></button></div></div>
-    {(!ready || mapError) && <div className="if-map-message" role="status">{mapError??'Loading Singapore · OneMap'}{mapError && <button onClick={()=>{setMapError(null);(mapRef.current?.getSource('onemap') as RasterTileSource|undefined)?.setTiles(basemapTiles);}}>Retry basemap</button>}</div>}
+    {(!ready || mapError) && <div className="if-map-message" role="status">{mapError??'Loading Singapore · NEXUS night map'}{mapError && <button onClick={()=>{setMapError(null);(mapRef.current?.getSource('nexus-base') as VectorTileSource|undefined)?.setUrl(OPERATIONAL_TILEJSON);}}>Retry basemap</button>}</div>}
     <div className="if-map-legend"><span><i className="affected"/>Affected route</span><span><i className="new"/>{applied?'Applied recovery':'Candidate route'}</span><span><i className="old"/>Base route</span><span><i className="stop"/>Completed / protected</span></div>
-    <div className="if-map-attribution"><a href="https://www.onemap.gov.sg/" target="_blank" rel="noreferrer"><img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" alt="OneMap"/>OneMap</a> © contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noreferrer">Singapore Land Authority</a> · Routes © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a></div>
+    <div className="if-map-attribution"><span>NEXUS · NOCTURNE</span><a href="https://openfreemap.org/" target="_blank" rel="noreferrer">OpenFreeMap</a> · © <a href="https://openmaptiles.org/" target="_blank" rel="noreferrer">OpenMapTiles</a> · © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a></div>
     {(selected||selectedVehicle)&&<div className="if-map-selection">{selected??selectedVehicle}<span>{selected ? `${applied?'Assigned':'Candidate'} vehicle · ${data.affectedOrders.find(order=>order.id===selected)?.assignedTo}`:'Recovery assignments highlighted'}</span></div>}
   </section>;
 }
-
-
