@@ -29,3 +29,26 @@
 @property --edge{syntax:'<color>';inherits:true;initial-value:#cf6252}
 @property --glow{syntax:'<color>';inherits:true;initial-value:#d6534328}
 @property --inner{syntax:'<color>';inherits:true;initial-value:#7e292815}
+
+/* The order panel uses the same shell and continuous time gauge as Vehicle Inspector. */
+.or-page.or-inspector-open{width:calc(100% - 560px)}
+.or-inspector{width:560px}
+.or-inspector .vf-inspector-title{flex-wrap:wrap;gap:9px 11px}
+.or-inspector .vf-inspector-title h2{font-size:38px;margin-right:5px}
+.or-detail-badge{display:inline-flex;align-items:center;min-height:28px;padding:5px 11px;border-radius:16px;color:#e8ca7f;background:#34291566;font-size:10px;letter-spacing:.03em;white-space:nowrap}
+.or-detail-badge.danger{background:#4a1d1b99;color:#fa7869}.or-detail-badge.warning{background:#49331b99;color:#f2c57c}
+.or-detail-metrics article{min-height:78px}.or-detail-metrics strong{font-variant-numeric:tabular-nums}.or-detail-metrics .danger strong{color:#f77b6e}.or-detail-metrics .warning strong{color:#f0c377}
+.or-inspector .vf-time-gauge{padding-top:15px;padding-bottom:14px}.or-inspector .vf-time-countdown{color:#efd190;font-variant-numeric:tabular-nums}
+.or-inspector .vf-execution-list.or-journey li{grid-template-columns:25px minmax(0,1fr) auto;min-height:64px}
+.or-journey .vf-execution-place strong,.or-journey .vf-execution-place small{white-space:normal;overflow:visible;text-overflow:clip}
+.or-journey .vf-execution-place small{line-height:1.4}.or-journey .vf-execution-status{max-width:95px;text-align:center}
+.or-place-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.or-place-grid article{min-width:0;border:1px solid #30291f;border-radius:7px;background:linear-gradient(145deg,#1a1711,#111110);padding:13px 14px;font-size:12px}
+.or-place-grid h4{font-size:12px;font-weight:500;color:#ece3cf;margin:0 0 10px}.or-place-grid p{margin:0 0 5px;color:#e3d9c5}.or-place-grid address{min-height:35px;font-size:11px;font-style:normal;line-height:1.5;color:#aaa397;overflow-wrap:anywhere}
+.or-place-grid dl{border-top:1px solid #2c281e;margin:11px 0 0;padding-top:8px}.or-place-grid dl>div{display:flex;justify-content:space-between;gap:10px;margin-top:7px}.or-place-grid dt{color:#aaa397}.or-place-grid dd{margin:0;color:#e4c994;text-align:right;font-variant-numeric:tabular-nums}
+.or-assignment{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-block:1px solid #2c281e;margin:0 0 12px}.or-assignment>div{grid-column:span 2;padding:10px;border-right:1px solid #2c281e;min-width:0}.or-assignment>div:nth-child(3),.or-assignment>div:nth-child(5){border-right:0}.or-assignment>div:nth-child(n+4){grid-column:span 3;border-top:1px solid #2c281e}.or-assignment dt{font-size:10px;color:#aaa398}.or-assignment dd{margin:6px 0 0;color:#e9e1d2;font-size:12px;overflow-wrap:anywhere}
+.or-vehicle-link{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #ad8537;border-radius:6px;background:linear-gradient(120deg,#271f11,#14120e);color:#e7c57b;text-decoration:none;font-size:12px}.or-vehicle-link:hover{border-color:#edcd85}.or-vehicle-link svg{width:20px;height:20px}.or-vehicle-link svg:last-child{margin-left:auto;border:1px solid #9d772e;border-radius:50%;padding:3px}
+.or-inspector-loading{display:grid;gap:15px;margin-top:20px}.or-detail-skeleton{height:105px;border-radius:7px}.or-detail-skeleton:first-child{height:60px}.or-detail-skeleton:nth-child(3){height:145px}
+.or-detail-error{padding:20px 4px;color:#eab7a7}.or-detail-error p{font-size:12px;line-height:1.5}.or-detail-error button{border:1px solid #995741;border-radius:5px;background:#281713;color:#f0b9a0;padding:8px 14px}
+@media(max-width:1300px){.or-page.or-inspector-open{width:calc(100% - 480px)}.or-inspector{width:480px}.or-page.or-inspector-open .or-controls{gap:12px}}
+@media(max-width:1120px){.or-page.or-inspector-open{width:100%}.or-inspector{width:min(480px,calc(100vw - 70px))}}
+@media(max-width:700px){.or-inspector{width:calc(100vw - 64px)}.or-place-grid{grid-template-columns:1fr}.or-inspector .vf-inspector-scroll{padding:17px}.or-inspector .vf-inspector-title h2{font-size:32px}}
