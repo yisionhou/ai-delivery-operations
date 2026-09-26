@@ -5,7 +5,7 @@ export const SUPPORT_SITES=6,STRANDS_PER_SITE=2,SUPPORT_SEGMENTS=36,RESIDUAL_CAP
 const hash=(x:number)=>{const v=Math.sin(x*127.1+311.7)*43758.5453;return v-Math.floor(v);};
 
 // Anchor to the dominant connected polygon, never the bounding rectangle of distant islands.
-export function supportAnchors(feature:RegionCollection['features'][number]):SupportAnchor[]{
+export function supportAnchors(feature:RegionCollection['features'][number],count=SUPPORT_SITES):SupportAnchor[]{
   const polygons=(feature.geometry.type==='Polygon'?[feature.geometry.coordinates]:feature.geometry.coordinates) as [number,number][][][];
   const area=(r:[number,number][])=>Math.abs(r.reduce((a,p,i)=>{const q=r[(i+1)%r.length];return a+p[0]*q[1]-p[1]*q[0];},0));
   const main=polygons.reduce((a,b)=>area(a[0])>=area(b[0])?a:b);
@@ -15,8 +15,8 @@ export function supportAnchors(feature:RegionCollection['features'][number]):Sup
   const edges=ring.slice(1).map((b,i)=>{const a=ring[i],len=Math.hypot(b.x-a.x,b.z-a.z),s=signed>=0?1:-1;return {a,b,len,tx:(b.x-a.x)/len,tz:(b.z-a.z)/len,nx:(b.z-a.z)/len*s,nz:-(b.x-a.x)/len*s};}).filter(e=>e.len>1e-7);
   const forward=edges.filter(e=>(e.a.z+e.b.z)*.5>minZ+(maxZ-minZ)*.5&&e.nz>-.35);
   const chosen=forward.length?forward:edges,total=chosen.reduce((n,e)=>n+e.len,0);
-  return Array.from({length:SUPPORT_SITES},(_,i)=>{
-    let d=total*(i+.4)/SUPPORT_SITES;let e=chosen[chosen.length-1];
+  return Array.from({length:count},(_,i)=>{
+    let d=total*(i+.4)/count;let e=chosen[chosen.length-1];
     for(const candidate of chosen){e=candidate;if(d<=e.len)break;d-=e.len;}
     const t=Math.min(1,d/e.len);return {x:e.a.x+(e.b.x-e.a.x)*t,z:e.a.z+(e.b.z-e.a.z)*t,tx:e.tx,tz:e.tz,nx:e.nx,nz:e.nz,phase:hash(i+main[0].length)*Math.PI*2};
   });

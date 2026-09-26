@@ -2,7 +2,15 @@
 
 Interactive single-page operations demo built with React, React Three Fiber and Three.js.
 
-## Latest scoped pass — gold-only support (2026-09-26)
+## Latest pass — stronger global cloud bed + readable relief (2026-09-26)
+
+The approved local support effect is unchanged. Only the global foundation is broader, more continuous and shaped as a shallow world-space cloud bed below the map. Actual terrain displacement now makes the central/western low hills and coast-to-interior rise more legible at the normal overview camera; height-aware material shading reinforces the geometry. Buildings retain their layout and scale and use the existing grounding system. No new water effects, scene-light multiplier or camera changes were made. See [focused changes and verification](./FOCUSED-CLOUD-RELIEF-VERIFICATION.md).
+
+## Previous pass — connected gold mist + coastal relief (2026-09-26)
+
+The current pass extends the approved gold-only support with a fuller connected local envelope and a quieter world-space cloud foundation below the whole map. Geographically anchored, artistic terrain relief is now active again; this is not a measured DEM. Original water holes, architectural placement/scale, routes, camera timing and pointer guards remain intact. See [implementation and actual verification](./INTEGRATED-REFINEMENT-VERIFICATION.md).
+
+## Previous scoped pass — gold-only support (2026-09-26)
 
 The active levitation effect is now a larger, airy gold mist with subtle gold residual particles. The obsolete visible support-curve renderer has been removed; delivery routes, nodes and coastline micro-glow are unchanged. Existing light intensity is retained without another multiplier. Terrain, architecture and motion work remain paused. See [actual changes, checks and evidence limitations](./GOLD-CLOUD-VERIFICATION.md). Earlier descriptions of line-based support below are historical and are superseded by this gold-only pass.
 

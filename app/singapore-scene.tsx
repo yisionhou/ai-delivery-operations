@@ -2,14 +2,16 @@
 
 import { ContactShadows, Environment, Lightformer } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import * as THREE from "three";
 import { TessellateModifier } from "three/addons/modifiers/TessellateModifier.js";
 import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
-import { architecturalFinishes, createArchitecture } from "./maquette-architecture";
+import { architecturalFinishes, architectureFoundations, createArchitecture } from "./maquette-architecture";
 import { containsLand, constrainedRoute } from "./geographic-constraints";
 import { ROUTES } from "./delivery-routes";
-import { createTerrainMaterial } from './terrain-material';
+import { createTerrainMaterial, createCutFaceMaterial } from './terrain-material';
+import {createLandform,BASE_DEPTH,type Landform} from './terrain-landform';
+import BaseMist from './base-mist';
 import InspectionCamera, { type CameraCommand, type InspectionGate } from './inspection-camera';
 import { createRegionHoverOwner, createRegionPointerHandlers, noDecorationRaycast } from './region-interaction';
 import SceneTelemetry from './scene-telemetry';
@@ -28,22 +30,11 @@ type RegionFeature = {
 export type RegionCollection = { type: "FeatureCollection"; features: RegionFeature[] };
 
 const SCALE = 70;
-const BASE_DEPTH = .66;
 const toScene = ([lon, lat]: Position): [number, number] => [(lon - 103.82) * SCALE, (lat - 1.35) * SCALE];
-const terrainHeight = (x: number, z: number) => {
-  // A low, continuous relief field: no region-specific discontinuities at seams.
-  const inland = Math.exp(-((x + 1.9) ** 2 / 68 + (z + 1.1) ** 2 / 34));
-  const undulation = (Math.sin(x * .72 + z * .27) * Math.cos(z * .83 - x * .16) + 1) * .028;
-  const airportPlain = 1 - .62 * THREE.MathUtils.smoothstep(x, 7, 13);
-  return Math.max(0, (.025 + inland * .105 + undulation) * airportPlain);
-};
-const surfaceAt = (point: Position, clearance = 0) => {
-  const [x, north] = toScene(point);
-  const z = -north;
-  return new THREE.Vector3(x, BASE_DEPTH + terrainHeight(x, z) + clearance, z);
-};
+const TerrainContext=createContext<Landform|null>(null);
+function useTerrain(){const terrain=useContext(TerrainContext);if(!terrain)throw new Error('Missing shared landform');return terrain;}
 const PRESENTATION = new THREE.Vector3(-4, 0, 10);
-function regionLayout(feature:RegionFeature) {
+function regionLayout(feature:RegionFeature,surfaceAt:Landform['surface']) {
   const box=new THREE.Box3();
   const polygons=feature.geometry.type==="Polygon"?[feature.geometry.coordinates as Position[][]]:feature.geometry.coordinates as Position[][][];
   polygons.forEach(p=>p[0].forEach(point=>box.expandByPoint(surfaceAt(point))));
@@ -95,9 +86,9 @@ function shapesFromFeature(feature: RegionFeature) {
 
 const pointInRegion = containsLand;
 
-function regionGeometries(feature: RegionFeature, shapes: THREE.Shape[]) {
+function regionGeometries(feature: RegionFeature, shapes: THREE.Shape[],terrainHeight:Landform['height']) {
   const rawTop = new THREE.ShapeGeometry(shapes);
-  const top = new TessellateModifier(1.6, 2).modify(rawTop);
+  const top = new TessellateModifier(.55, 6).modify(rawTop);
   rawTop.dispose();
   top.rotateX(-Math.PI / 2);
   const topPositions = top.getAttribute("position") as THREE.BufferAttribute;
@@ -130,8 +121,8 @@ function regionGeometries(feature: RegionFeature, shapes: THREE.Shape[]) {
     : feature.geometry.coordinates as Position[][][];
   const vertex = (x: number, z: number, index: number) => {
     const level = strata[index];
-    const y = level.y + (index === strata.length - 1 ? terrainHeight(x, z) :
-      index > 0 && index < strata.length - 1 ? Math.sin(x * 1.12 + z * .64) * .012 : 0);
+    const y = level.y + (level.y / BASE_DEPTH) * terrainHeight(x, z) +
+      (index > 0 && index < strata.length - 1 ? Math.sin(x * 1.12 + z * .64) * .012 : 0);
     // Exact XY at every height: centroid insets distorted narrow inlets/concave sides.
     // Strata remain a dark material treatment, not displaced borders or measured geology.
     return [x, y, z] as const;
@@ -170,7 +161,8 @@ function regionGeometries(feature: RegionFeature, shapes: THREE.Shape[]) {
 }
 
 function ArchitecturalDistrict({feature}:{feature:RegionFeature}) {
-  const batches=useMemo(()=>createArchitecture(feature.properties.REGION_N,p=>pointInRegion(p,feature),p=>surfaceAt(p)),[feature]);
+  const {surface:surfaceAt}=useTerrain();
+  const batches=useMemo(()=>createArchitecture(feature.properties.REGION_N,p=>pointInRegion(p,feature),p=>surfaceAt(p)),[feature,surfaceAt]);
   useEffect(()=>()=>batches.forEach(batch=>batch.geometry.dispose()),[batches]);
   return <group name="architectural-maquette">{batches.map(batch=><mesh key={batch.finish} geometry={batch.geometry} castShadow receiveShadow>
     <meshStandardMaterial {...architecturalFinishes[batch.finish]} envMapIntensity={.6} side={THREE.DoubleSide}/>
@@ -178,6 +170,7 @@ function ArchitecturalDistrict({feature}:{feature:RegionFeature}) {
 }
 
 function PlaceLabel({at,text}:{at:Position;text:string}) {
+  const {height:terrainHeight}=useTerrain();
   const [x,z]=toScene(at);
   const texture=useMemo(()=>{
     const canvas=document.createElement("canvas");canvas.width=512;canvas.height=96;
@@ -193,6 +186,7 @@ function PlaceLabel({at,text}:{at:Position;text:string}) {
 }
 
 function IncidentBeacon() {
+  const {height:terrainHeight}=useTerrain();
   const [x,z]=toScene([103.94,1.35]);
   return <group position={[x,BASE_DEPTH+terrainHeight(x,-z)+.12,-z]}>
     <mesh rotation={[-Math.PI/2,0,0]}><torusGeometry args={[.27,.035,6,28]}/><meshBasicMaterial color="#ff735b"/></mesh>
@@ -212,7 +206,8 @@ function Hub({point,important=false}:{point:THREE.Vector3;important?:boolean}) {
 }
 
 function RouteGeometry({route,feature,emphasis=false}:{route:Route;feature:RegionFeature;emphasis?:boolean}) {
-  const sections=useMemo(()=>constrainedRoute(route.path,feature).map(section=>section.map(point=>surfaceAt(point,.065))),[route,feature]);
+  const {surface:surfaceAt}=useTerrain();
+  const sections=useMemo(()=>constrainedRoute(route.path,feature).map(section=>section.map(point=>surfaceAt(point,.065))),[route,feature,surfaceAt]);
   const geometries=useMemo(()=>sections.map((part)=>{
     const line=new THREE.CurvePath<THREE.Vector3>();
     for(let i=1;i<part.length;i++)line.add(new THREE.LineCurve3(part[i-1],part[i]));
@@ -238,17 +233,20 @@ function RegionGroup({feature,boundary,selected,muted,hovered,onHover,onSelect,g
   feature:RegionFeature;selected:boolean;muted:boolean;hovered:boolean;onHover:(key:RegionKey,active:boolean)=>void;onSelect:(key:RegionKey)=>void;gate:MutableRefObject<InspectionGate>;
 }) {
   const key=feature.properties.REGION_N;
+  const {surface:surfaceAt,height:terrainHeight}=useTerrain();
   const group=useRef<THREE.Group>(null);
   const shadowMat=useRef<THREE.MeshBasicMaterial>(null);
   const changeTime=useRef(0);
   const prevSelected=useRef(selected);
-  const layout=useMemo(()=>regionLayout(feature),[feature]);
+  const layout=useMemo(()=>regionLayout(feature,surfaceAt),[feature,surfaceAt]);
   const recession=useRef(1);
   const renderMaterials=useRef<Array<{material:THREE.Material & {color?:THREE.Color;emissiveIntensity?:number};color?:THREE.Color;opacity:number;emissive:number;sprite:boolean}>>([]);
   const regionLights=useRef<Array<{light:THREE.Light;intensity:number}>>([]);
   const shapes=useMemo(()=>shapesFromFeature(feature),[feature]);
-  const geometry=useMemo(()=>regionGeometries(feature,shapes),[feature,shapes]);
+  const geometry=useMemo(()=>regionGeometries(feature,shapes,terrainHeight),[feature,shapes,terrainHeight]);
   const topMaterial=useMemo(()=>createTerrainMaterial(key),[key]);
+  const wallMaterial=useMemo(()=>createCutFaceMaterial(),[]);
+  useEffect(()=>()=>wallMaterial.dispose(),[wallMaterial]);
   const edge=useMemo(()=>createEdgeFinish(boundary),[boundary]);
   useEffect(()=>()=>{topMaterial.dispose();edge.geometry.dispose();edge.material.dispose();},[topMaterial,edge]);
   useEffect(()=>()=>{geometry.top.dispose();geometry.walls.dispose();geometry.underside.dispose();},[geometry]);
@@ -320,7 +318,7 @@ function RegionGroup({feature,boundary,selected,muted,hovered,onHover,onSelect,g
     </mesh>
     <group ref={group} name={`region-${key.toLowerCase().replaceAll(" ","-")}`} {...pointerHandlers}>
       <mesh geometry={geometry.underside} receiveShadow><meshStandardMaterial color="#111110" roughness={.9} side={THREE.DoubleSide}/></mesh>
-      <mesh geometry={geometry.walls} castShadow receiveShadow><meshStandardMaterial vertexColors color="#ffffff" metalness={.18} roughness={.66} envMapIntensity={.8} side={THREE.DoubleSide}/></mesh>
+      <mesh geometry={geometry.walls} material={wallMaterial} castShadow receiveShadow/>
       <mesh geometry={geometry.top} material={topMaterial} castShadow receiveShadow/>
       <mesh name="physical-edge-finish" geometry={edge.geometry} material={edge.material} raycast={noDecorationRaycast}/>
       <ArchitecturalDistrict feature={feature}/>
@@ -339,8 +337,9 @@ function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotion
 }) {
   const [hovered,setHovered]=useState<RegionKey|null>(null);
   const gate=useRef<InspectionGate>({locked:true,moved:false});
-  const layouts=useMemo(()=>Object.fromEntries(geo.features.map(f=>[f.properties.REGION_N,regionLayout(f)])),[geo]);
-  const boundaries=useMemo(()=>Object.fromEntries(geo.features.map(f=>[f.properties.REGION_N,terrainBoundary(f,surfaceAt)])),[geo]);
+  const terrain=useMemo(()=>createLandform(geo,geo.features.flatMap(f=>architectureFoundations(f.properties.REGION_N,p=>containsLand(p,f)))),[geo]);
+  const layouts=useMemo(()=>Object.fromEntries(geo.features.map(f=>[f.properties.REGION_N,regionLayout(f,terrain.surface)])),[geo,terrain]);
+  const boundaries=useMemo(()=>Object.fromEntries(geo.features.map(f=>[f.properties.REGION_N,terrainBoundary(f,terrain.surface)])),[geo,terrain]);
   useEffect(()=>{
     document.body.style.cursor=hovered?"pointer":"default";
     return ()=>{document.body.style.cursor="default";};
@@ -348,7 +347,7 @@ function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotion
   const hover=useMemo(()=>createRegionHoverOwner<RegionKey>((key)=>{
     setHovered(key);onHoverRegion(key);
   }),[onHoverRegion]);
-  return <>
+  return <TerrainContext.Provider value={terrain}>
     <color attach="background" args={["#090909"]}/>
     <fog attach="fog" args={["#090909",60,115]}/>
     <ambientLight intensity={.45*MAP_LIGHT_GAIN}/>
@@ -372,13 +371,14 @@ function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotion
         onHover={hover} onSelect={onSelectRegion} gate={gate}/>)}
     </group>
     <LiftDust selectedRegion={selectedRegion} geo={geo} visibility={visibility} layouts={layouts}/>
+    <BaseMist geo={geo} focused={!!selectedRegion} enabled={visibility.support}/>
     <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.51,0]} receiveShadow>
       <planeGeometry args={[90,65]}/><meshStandardMaterial color="#090909" metalness={.16} roughness={.89}/>
     </mesh>
     <ContactShadows position={[0,-.49,0]} opacity={.38} scale={57} blur={2.8} far={18} color="#000000"/>
     <InspectionCamera selectedRegion={selectedRegion} layouts={layouts} command={command} gate={gate} onMotionChange={onMotionChange}/>
     <SceneTelemetry/>
-  </>;
+  </TerrainContext.Provider>;
 }
 
 export default function SingaporeScene({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotionChange}:{

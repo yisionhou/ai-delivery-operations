@@ -5,14 +5,15 @@ import {noDecorationRaycast} from './region-interaction';
 import type {VisibilitySettings} from './visibility-diagnostics';
 import type {RegionLayout} from './inspection-camera';
 import type {RegionCollection} from './singapore-scene';
-import {supportAnchors,supportPoint,SupportState,SupportResiduals,SUPPORT_SITES} from './support-field';
-import {createSupportMist} from './support-mist';
+import {supportAnchors,supportPoint,SupportState,SupportResiduals} from './support-field';
+import {createSupportMist,LOCAL_MIST_SITES} from './support-mist';
 /* eslint-disable react-hooks/immutability -- Imperative GPU buffers and object transforms are updated only in the frame loop. */
 
 export default function LiftDust({selectedRegion,geo,visibility,layouts}:{selectedRegion:string|null;geo:RegionCollection;visibility:VisibilitySettings;layouts:Record<string,RegionLayout>}){
   const state=useMemo(()=>new SupportState(),[]),dust=useMemo(()=>new SupportResiduals(),[]);
   const mist=useMemo(()=>createSupportMist(),[]);
-  const anchors=useMemo(()=>Object.fromEntries(geo.features.map(f=>[f.properties.REGION_N,supportAnchors(f)])),[geo]);
+  const anchors=useMemo(()=>Object.fromEntries(geo.features.map(f=>[f.properties.REGION_N,supportAnchors(f,LOCAL_MIST_SITES)])),[geo]);
+  const cueAnchors=useMemo(()=>Object.fromEntries(geo.features.map(f=>[f.properties.REGION_N,supportAnchors(f)])),[geo]);
   const previous=useRef<string|null>(null),source=useRef<THREE.Object3D|null>(null),emission=useRef(0),telemetry=useRef(0);
   const cues=useRef<Array<THREE.PointLight|null>>([]);
   const direction=useMemo(()=>new THREE.Vector3(),[]),point=useMemo(()=>new THREE.Vector3(),[]);
@@ -36,7 +37,7 @@ export default function LiftDust({selectedRegion,geo,visibility,layouts}:{select
     if(active&&source.current&&selectedRegion){
       source.current.updateWorldMatrix(true,false);active.matrix.copy(source.current.matrixWorld);
       emission.current+=Math.min(dt,.15);
-      if(emission.current>.12){emission.current-=.12;const a=active.anchors[dust.cursor%SUPPORT_SITES];
+      if(emission.current>.12){emission.current-=.12;const a=active.anchors[dust.cursor%active.anchors.length];
         supportPoint(a,1,.3+.4*Math.sin(dust.cursor*.73)**2,state.time,point).applyMatrix4(active.matrix);
         direction.set(a.nx,0,a.nz).transformDirection(active.matrix);dust.spawn(point,direction);
       }
@@ -50,7 +51,7 @@ export default function LiftDust({selectedRegion,geo,visibility,layouts}:{select
     // Deliberate, economical underside bounce approximation; not glow pretending to illuminate geometry.
     const latest=state.banks.at(-1);
     cues.current.forEach((light,i)=>{if(!light)return;light.intensity=latest&&visibility.support?state.opacity(latest)*.65:0;
-      if(latest){const a=latest.anchors[i?4:1];light.position.set(a.x+a.nx*.15,-.12,a.z+a.nz*.15).applyMatrix4(latest.matrix);}
+      if(latest){const a=cueAnchors[latest.region][i?4:1];light.position.set(a.x+a.nx*.15,-.12,a.z+a.nz*.15).applyMatrix4(latest.matrix);}
     });
     telemetry.current+=dt;if(telemetry.current>.1){telemetry.current=0;gl.domElement.dataset.support=JSON.stringify({enabled:visibility.support,transitions:state.serial,emitting:state.current?.id??null,lineVertices:0,mistInstances:mist.geometry.instanceCount,residuals:dust.active,residualBirths:dust.cursor,banks:state.banks.map(b=>({id:b.id,region:b.region,phase:state.phase(b),alpha:state.opacity(b),matrixPosition:[b.matrix.elements[12],b.matrix.elements[13],b.matrix.elements[14]],anchor:point.set(b.anchors[0].x,-.14,b.anchors[0].z).applyMatrix4(b.matrix).toArray()}))});}
   });

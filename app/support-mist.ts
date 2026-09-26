@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import {supportPoint, type SupportState, SUPPORT_SITES} from './support-field.ts';
+import {supportPoint, type SupportState} from './support-field.ts';
 
-export const MIST_PER_SITE=10, MIST_CAPACITY=3*SUPPORT_SITES*MIST_PER_SITE;
+export const LOCAL_MIST_SITES=18, MIST_PER_SITE=10, MIST_CAPACITY=3*LOCAL_MIST_SITES*MIST_PER_SITE;
 const seed=(n:number)=>{const x=Math.sin(n*127.1+71.9)*43758.5453;return x-Math.floor(x);};
 
 // A shallow 3D distribution of feathered wisps, not one flat cloud card or a bounding-box cushion.
@@ -46,8 +46,8 @@ export function createSupportMist(){
         point.x+=a.nx*(.22+Math.sin(curl)*.2);point.z+=a.nz*(.22+Math.sin(curl)*.2);
         point.y-=.1+h*.3;point.y+=Math.sin(curl*1.13)*.09;
         point.applyMatrix4(bank.matrix);centers.setXYZ(count,point.x,point.y,point.z);
-        parameters.setXYZW(count,(1.9+seed(i+9)*1.5)*(1+loosen*.32),(1.+seed(i+25)*.85)*(1+loosen*.4),
-          fade*(.19+.065*seed(i+2)),phase);count++;
+        parameters.setXYZW(count,(2.25+seed(i+9)*1.5)*(1+loosen*.32),(1.1+seed(i+25)*.85)*(1+loosen*.4),
+          fade*(.12+.055*seed(i+2)),phase);count++;
       }
     }
     geometry.instanceCount=enabled?count:0;centers.needsUpdate=true;parameters.needsUpdate=true;

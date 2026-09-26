@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {supportAnchors,supportPoint,SupportState,SupportResiduals,RESIDUAL_CAPACITY} from '../app/support-field.ts';
-import {createSupportMist,MIST_CAPACITY} from '../app/support-mist.ts';
+import {createSupportMist,MIST_CAPACITY,LOCAL_MIST_SITES} from '../app/support-mist.ts';
 
 const geo=JSON.parse(readFileSync('public/data/singapore-regions.geojson','utf8'));
 for(const feature of geo.features){
@@ -40,10 +40,10 @@ assert.ok(source.includes('raycast={noDecorationRaycast}'));
 assert.ok(!source.includes('levitation-support-currents'),'obsolete support-line renderer removed');
 assert.ok(!source.includes('aTangent'),'no hidden line buffers/shader');
 const mist=createSupportMist(),cloudState=new SupportState();
-cloudState.begin('A',new THREE.Matrix4(),anchors);cloudState.tick(.3);mist.update(cloudState,true);
-assert.equal(mist.geometry.instanceCount,60);assert.ok(mist.geometry.instanceCount<=MIST_CAPACITY);
+cloudState.begin('A',new THREE.Matrix4(),supportAnchors(geo.features[0],LOCAL_MIST_SITES));cloudState.tick(.3);mist.update(cloudState,true);
+assert.equal(mist.geometry.instanceCount,180);assert.ok(mist.geometry.instanceCount<=MIST_CAPACITY);
 const params=mist.geometry.getAttribute('aMist');
-for(let i=0;i<60;i++){assert.ok(params.getX(i)>=1.9);assert.ok(params.getY(i)>=1);assert.ok(params.getZ(i)<.26);}
+for(let i=0;i<180;i++){assert.ok(params.getX(i)>=2.25);assert.ok(params.getY(i)>=1.1);assert.ok(params.getZ(i)<.18);}
 assert.ok([...mist.geometry.getAttribute('aCenter').array].every(Number.isFinite));
 const gold=mist.material.uniforms.uGold.value as THREE.Color;
 assert.ok(gold.r>gold.g&&gold.g>gold.b*2,'gold instead of white/grey');

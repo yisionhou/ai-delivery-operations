@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import SingaporeScene, { RegionCollection, RegionKey } from "./singapore-scene";
 import type { CameraCommand } from './inspection-camera';
+import IncidentFocusPage from './incidents/incident-focus-page';
 
 type AppState = "SINGAPORE_OVERVIEW" | "REGION_FOCUS" | "INCIDENT_FOCUS" | "RECOVERY";
 
@@ -37,14 +38,14 @@ function BrandMark() {
   return <span className="nexus-mark"><span/><span/><span/></span>;
 }
 
-function Sidebar({ onIncident }: { onIncident: () => void }) {
+function Sidebar({ onIncident, onOverview, incidentActive }: { onIncident: () => void; onOverview: () => void; incidentActive: boolean }) {
   const nav = [
     ["Overview", LayoutDashboard], ["Operations", Boxes], ["Incidents", AlertTriangle],
     ["AI Agent", Sparkles], ["Vehicles", Truck], ["Orders", Package], ["Analytics", BarChart3],
   ] as const;
   return <aside className="nexus-sidebar">
     <div className="nexus-brand"><BrandMark/><span><b>NEXUS</b><small>Delivery Operations</small></span></div>
-    <nav>{nav.map(([label, Icon], index) => <button key={label} className={index === 0 ? "active" : ""} onClick={label === "Incidents" ? onIncident : undefined}>
+    <nav>{nav.map(([label, Icon]) => <button key={label} className={(incidentActive ? label === "Incidents" : label === "Overview") ? "active" : ""} aria-current={(incidentActive ? label === "Incidents" : label === "Overview") ? "page" : undefined} onClick={label === "Incidents" ? onIncident : label === "Overview" ? onOverview : undefined}>
       <Icon/><span>{label}</span>{label === "Incidents" && <em>3</em>}
     </button>)}</nav>
     <button className="settings-link"><Settings/><span>Settings</span></button>
@@ -124,6 +125,7 @@ function AgentPanel({ state }: { state: AppState }) {
 export default function OperationsConsole() {
   const [geo, setGeo] = useState<RegionCollection | null>(null);
   const [state, setState] = useState<AppState>("SINGAPORE_OVERVIEW");
+  const [incidentActive, setIncidentActive] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<RegionKey | null>(null);
   const [hoveredRegion, setHoveredRegion] = useState<RegionKey|null>(null);
   const [cameraBusy,setCameraBusy]=useState(true);
@@ -139,11 +141,11 @@ export default function OperationsConsole() {
 
   const selectRegion = (key:RegionKey) => { setSelectedRegion(key); setState("REGION_FOCUS"); setHoveredRegion(null); };
   const reset = () => { setSelectedRegion(null); setState("SINGAPORE_OVERVIEW"); setHoveredRegion(null); };
-  const stageIncident = () => { setSelectedRegion("EAST REGION"); setState("INCIDENT_FOCUS"); };
+  const stageIncident = () => setIncidentActive(true);
 
   return <main className="nexus-app">
-    <Sidebar onIncident={stageIncident}/>
-    <div className="nexus-main">
+    <Sidebar onIncident={stageIncident} onOverview={() => setIncidentActive(false)} incidentActive={incidentActive}/>
+    <div className="nexus-main" style={incidentActive ? {display:'none'} : undefined} aria-hidden={incidentActive || undefined}>
       <header className="nexus-header"><div><h1>Good morning, Alex.</h1><p>Everything in motion. We&apos;ll help you keep it that way.</p></div>
         <div className="header-tools"><label><Search/><input aria-label="Search" placeholder="Search order, vehicle, location..."/></label><button aria-label="Notifications"><Bell/></button><span className="user-avatar"><UserRound/></span></div>
       </header>
@@ -155,5 +157,6 @@ export default function OperationsConsole() {
       <section className="bottom-grid"><VehiclePanel/><IncidentPanel onIncident={stageIncident}/><AgentPanel state={state}/></section>
       <div className="sr-only" aria-live="polite">{state}. {selectedRegion ?? "Singapore overview"}.</div>
     </div>
+    <div style={{display:incidentActive ? 'contents' : 'none'}}><IncidentFocusPage/></div>
   </main>;
 }

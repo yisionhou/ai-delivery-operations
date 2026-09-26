@@ -307,6 +307,18 @@ export function architecturalScale() {
   return new THREE.Vector3(.73,1.02,.73);
 }
 
+// Grounding footprints only; approved asset coordinates, rotation and scale stay unchanged.
+export function architectureFoundations(region:string,isLand:(p:Position)=>boolean){
+  const bounds=new Map<Kind,THREE.Box3>();
+  return assets[region].filter(a=>isLand(a.at)).map(a=>{
+    let box=bounds.get(a.kind);
+    if(!box){box=new THREE.Box3();for(const part of model(a.kind)){part.geometry.computeBoundingBox();box.union(part.geometry.boundingBox!);part.geometry.dispose();}bounds.set(a.kind,box);}
+    const scale=architecturalScale().multiplyScalar(a.scale??1);
+    return {x:(a.at[0]-103.82)*70,z:-(a.at[1]-1.35)*70,halfX:Math.max(Math.abs(box.min.x),Math.abs(box.max.x))*scale.x+.035,
+      halfZ:Math.max(Math.abs(box.min.z),Math.abs(box.max.z))*scale.z+.035,angle:a.angle??0};
+  });
+}
+
 export function createArchitecture(region:string, isLand:(p:Position)=>boolean, surface:(p:Position)=>THREE.Vector3) {
   const buckets=new Map<Finish,THREE.BufferGeometry[]>();
   const placed=assets[region].filter(asset=>isLand(asset.at));

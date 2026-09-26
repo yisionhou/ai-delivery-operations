@@ -5,8 +5,8 @@ export function createTerrainMaterial(region: string) {
   const strength = { value: 1 };
   const density = { value: region.startsWith('CENTRAL') ? 1 : region.startsWith('NORTH-EAST') ? .65 : region.startsWith('NORTH') ? .35 : .7 };
   const material = new THREE.MeshPhysicalMaterial({
-    color: '#303030', metalness: .23, roughness: .62,
-    clearcoat: .2, clearcoatRoughness: .48, envMapIntensity: .8,
+    color: '#303030', metalness: .18, roughness: .72,
+    clearcoat: .08, clearcoatRoughness: .6, envMapIntensity: .8,
     side: THREE.DoubleSide,
   });
   material.userData.shimmerStrength = strength;
@@ -39,7 +39,11 @@ export function createTerrainMaterial(region: string) {
         float rare=smoothstep(.91,.995,seed.z);
         return spot*lod*(.012+reflection*.6*rare);
       }
-    `).replace('#include <color_fragment>',`#include <color_fragment>\ndiffuseColor.rgb=mix(diffuseColor.rgb,vec3(.32),uTerrainProbe);`)
+    `).replace('#include <color_fragment>',`#include <color_fragment>
+      // Read the displaced surface elevation: restrained carved-stone tonal
+      // hierarchy reinforces the actual broad landform, not fake bump relief.
+      float landformTone=.84+.50*smoothstep(.68,1.9,vMineralPosition.y);
+      diffuseColor.rgb=mix(diffuseColor.rgb*landformTone,vec3(.32),uTerrainProbe);`)
     .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
       float microFilter=1.-smoothstep(.3,1.,length(fwidth(vMineralPosition.xz*85.)));
       float mineralNoise=mix(.5,mineralHash(floor(vMineralPosition.xz*85.)).x,microFilter);
@@ -59,6 +63,31 @@ export function createTerrainMaterial(region: string) {
       totalEmissiveRadiance+=vec3(.89,.86,.79)*(field*.15+bed*.0035)*urban*uMineralStrength;
     `);
   };
-  material.customProgramCacheKey = () => 'nexus-mineral-v2';
+  material.customProgramCacheKey = () => 'nexus-mineral-landform-v3';
   return material;
+}
+
+// Stationary, object-space carved facets. Exact shore vertices are not displaced.
+export function createCutFaceMaterial(){
+  const material=new THREE.MeshStandardMaterial({vertexColors:true,color:'#ffffff',metalness:.14,roughness:.83,envMapIntensity:.8,side:THREE.DoubleSide});
+  material.onBeforeCompile=shader=>{
+    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vCut;')
+      .replace('#include <begin_vertex>','#include <begin_vertex>\nvCut=position;');
+    shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
+      varying vec3 vCut;
+      float cutGrain(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+    `).replace('#include <color_fragment>',`#include <color_fragment>
+      float seam=sin(vCut.y*43.+sin(vCut.x*2.1+vCut.z*1.6)*1.3);
+      float grain=cutGrain(floor(vCut*vec3(12.,26.,12.)));
+      float grainLod=1.-smoothstep(.3,1.,length(fwidth(vCut*16.)));
+      diffuseColor.rgb*=.88+.10*seam+.13*mix(.5,grain,grainLod);
+    `).replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+      float relief=.008*sin(vCut.z*11.+vCut.y*7.)*cos(vCut.x*8.-vCut.z*6.);
+      vec3 dpdx=dFdx(-vViewPosition),dpdy=dFdy(-vViewPosition);
+      vec3 r1=cross(dpdy,normal),r2=cross(normal,dpdx);
+      float determinant=dot(dpdx,r1);
+      if(abs(determinant)>1e-10)normal=normalize(abs(determinant)*normal-sign(determinant)*(dFdx(relief)*r1+dFdy(relief)*r2));
+    `);
+  };
+  material.customProgramCacheKey=()=> 'nexus-carved-cut-v1';return material;
 }

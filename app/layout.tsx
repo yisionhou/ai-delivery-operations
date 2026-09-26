@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./reference.css";
 import "./region-focus.css";
+import "./incidents/incident-focus.css";
 
 export const metadata: Metadata = {
   title: "AI Delivery Operations",
