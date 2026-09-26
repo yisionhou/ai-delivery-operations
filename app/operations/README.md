@@ -1,6 +1,6 @@
 # Operations frontend integration
 
-The Operations navigation item contains Planning and Live Execution in one page. It uses the shared NEXUS shell and the same OneMap basemap settings as the Incident map.
+The Operations navigation item contains Planning and Live Execution in one page. It uses the shared NEXUS shell. Operations uses OneMap tiles; the Incident workspace uses its own NEXUS night-map style.
 
 ## Data status
 

@@ -1,0 +1,17 @@
+/* Opt-in NEXUS surfaces. Existing map / Overview palettes are independent. */
+:where(.nexus-theme,.incident-focus-page){
+  --nexus-bg:#080a0b;
+  --nexus-surface:rgba(12,14,15,.94);
+  --nexus-surface-elevated:rgba(23,25,26,.96);
+  --nexus-text-primary:#eee8dd;
+  --nexus-text-secondary:#b8b4aa;
+  --nexus-text-muted:#858985;
+  --nexus-gold:#d6b56f;
+  --nexus-gold-soft:#ebd39b;
+  --nexus-gold-line:rgba(214,181,111,.55);
+  --nexus-gold-wash:rgba(214,181,111,.07);
+  --nexus-danger:#f56552;
+  --nexus-success:#89b79c;
+  --nexus-border:#303233;
+  --nexus-border-subtle:#242627;
+}
