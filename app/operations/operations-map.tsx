@@ -6,7 +6,7 @@ import type {FeatureCollection,Feature} from 'geojson';
 import type {OperationsSnapshot,Route,Coordinate} from './operations-data';
 import {pointAlongRoute} from './route-position';
 import {roadAlignmentLabel} from './operations-route-label';
-import {createOperationalMapStyle,OPERATIONAL_TILEJSON,roadAccentData} from '../incidents/operational-map-style';
+import {createOperationalMapStyle,OPERATIONAL_TILEJSON,roadAccentData,operationalRouteStyle} from '../incidents/operational-map-style';
 import {singaporeBounds} from './singapore-basemap';
 
 type Props={active:boolean;snapshot:OperationsSnapshot;mode:'planning'|'live';selectedRoute:string|null;onSelectRoute:(id:string)=>void;onOpenIncident:(id:string)=>void};
@@ -38,10 +38,10 @@ export default function OperationsMap({active,snapshot,mode,selectedRoute,onSele
       map.on('load',()=>{
         if(cancelled)return;
         map.addSource('operation-routes',{type:'geojson',data:lines([],'planning')});
-        map.addLayer({id:'operation-route-glow',type:'line',source:'operation-routes',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['match',['get','kind'],'pickup','#e9e6da','delivery','#a7ddb0','#f1d293'],'line-width':14,'line-opacity':.28,'line-blur':6}});
-        map.addLayer({id:'operation-route-planned',type:'line',source:'operation-routes',filter:['==',['get','kind'],'planned'],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#f1d293','line-width':4.5,'line-opacity':1}});
-        map.addLayer({id:'operation-route-pickup',type:'line',source:'operation-routes',filter:['==',['get','kind'],'pickup'],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#f0efe8','line-width':3,'line-opacity':.95,'line-dasharray':[2,1.5]}});
-        map.addLayer({id:'operation-route-delivery',type:'line',source:'operation-routes',filter:['==',['get','kind'],'delivery'],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#a9dfb6','line-width':3.2,'line-opacity':.96}});
+        map.addLayer({id:'operation-route-glow',type:'line',source:'operation-routes',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['match',['get','kind'],'pickup','#e9e6da','delivery','#a7ddb0','#f1d293'],'line-width':operationalRouteStyle.candidate.glowWidth,'line-opacity':operationalRouteStyle.candidate.glowOpacity,'line-blur':operationalRouteStyle.candidate.glowBlur}});
+        map.addLayer({id:'operation-route-planned',type:'line',source:'operation-routes',filter:['==',['get','kind'],'planned'],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#f1d293','line-width':operationalRouteStyle.candidate.width,'line-opacity':1}});
+        map.addLayer({id:'operation-route-pickup',type:'line',source:'operation-routes',filter:['==',['get','kind'],'pickup'],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#f0efe8','line-width':operationalRouteStyle.base.width,'line-opacity':.95,'line-dasharray':[2,1.5]}});
+        map.addLayer({id:'operation-route-delivery',type:'line',source:'operation-routes',filter:['==',['get','kind'],'delivery'],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#a9dfb6','line-width':operationalRouteStyle.completed.width,'line-opacity':.96}});
         for(const layer of ['operation-route-planned','operation-route-pickup','operation-route-delivery'])map.on('click',layer,event=>{const id=event.features?.[0]?.properties?.route;if(typeof id==='string')handlers.current.onSelectRoute(id);});
         setReady(true);
       });

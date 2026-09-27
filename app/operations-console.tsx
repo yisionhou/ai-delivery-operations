@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {useRouter} from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
   AlertTriangle, ArrowLeft, Box, Check, ChevronRight,
   Clock3, CloudRain, Minus, Package, Plus, RefreshCw,
@@ -9,13 +10,14 @@ import {
 } from "lucide-react";
 import SingaporeScene, { RegionCollection, RegionKey } from "./singapore-scene";
 import type { CameraCommand } from './inspection-camera';
-import IncidentFocusPage from './incidents/incident-focus-page';
 import {incident,incidentWorkspaces} from './incidents/incident-mock';
 import {incidentPageHref} from './incidents/incident-navigation';
 import Sidebar from "./nexus-sidebar";
-import OperationsPage from './operations/operations-page';
-import {loadOverview,loadPositions,overviewErrorMessage,type OverviewSnapshot} from './overview/overview-api';
+import {loadOverview,loadPositions,overviewErrorMessage,type OverviewPositions,type OverviewSnapshot} from './overview/overview-api';
 import {overviewMetrics,overviewVehicles} from './overview/overview-model';
+
+const OperationsPage=dynamic(()=>import('./operations/operations-page'),{ssr:false});
+const IncidentFocusPage=dynamic(()=>import('./incidents/incident-focus-page'),{ssr:false});
 
 type AppState = "SINGAPORE_OVERVIEW" | "REGION_FOCUS" | "INCIDENT_FOCUS" | "RECOVERY";
 
@@ -103,6 +105,36 @@ function VehiclePanel({source,snapshot,businessDate}:{source:'api'|'demo';snapsh
   </section>;
 }
 
+function ClockCard(){
+  const [clock,setClock]=useState<number|null>(null);
+  useEffect(()=>{
+    const start=setTimeout(()=>setClock(Date.now()),0);
+    const timer=setInterval(()=>setClock(Date.now()),1000);
+    return()=>{clearTimeout(start);clearInterval(timer);};
+  },[]);
+  return <div className="clock-card"><small>{clock===null?'—':new Intl.DateTimeFormat('en-SG',{timeZone:'Asia/Singapore',weekday:'short',day:'2-digit',month:'short',year:'numeric'}).format(clock)}</small><strong>{clock===null?'—':new Intl.DateTimeFormat('en-SG',{timeZone:'Asia/Singapore',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(clock)}</strong></div>;
+}
+
+function LiveSingaporeScene({businessDate,planId,initialPositions,...sceneProps}:{businessDate:string;planId?:string;initialPositions:OverviewPositions|null}&Omit<Parameters<typeof SingaporeScene>[0],'positions'>){
+  const [polled,setPolled]=useState<{date:string;planId:string;positions:OverviewPositions|null}|null>(null);
+  useEffect(()=>{
+    if(sceneProps.source!=='api'||!sceneProps.active||!businessDate||!planId)return;
+    const controller=new AbortController();let pending=false;
+    const timer=setInterval(async()=>{
+      if(pending)return;pending=true;
+      try{
+        const data=await loadPositions(businessDate,controller.signal);
+        if(!controller.signal.aborted&&data.delivery_plan_id===planId&&data.business_date===businessDate)setPolled({date:businessDate,planId,positions:data});
+      }catch{
+        if(!controller.signal.aborted)setPolled({date:businessDate,planId,positions:null});
+      }finally{pending=false;}
+    },1000);
+    return()=>{controller.abort();clearInterval(timer);};
+  },[sceneProps.source,sceneProps.active,businessDate,planId]);
+  const positions=polled?.date===businessDate&&polled.planId===planId?polled.positions:initialPositions?.business_date===businessDate&&initialPositions.delivery_plan_id===planId?initialPositions:null;
+  return <SingaporeScene {...sceneProps} positions={sceneProps.source==='api'?positions:null}/>;
+}
+
 export function IncidentPanel({ onIncident,source,snapshot,businessDate }: { onIncident: () => void;source:'api'|'demo';snapshot:OverviewSnapshot|null;businessDate:string }) {
   const backend=source==='api',incidents=snapshot?.incidents?.filter(item=>item.status!=='RESOLVED').sort((a,b)=>b.detected_at.localeCompare(a.detected_at)).slice(0,3)??[];
   return <section className="bottom-panel incident-panel">
@@ -137,7 +169,6 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
   const [backendError,setBackendError]=useState<string|null>(null);
   const [backendBusy,setBackendBusy]=useState(false);
   const [overviewRevision,setOverviewRevision]=useState(0);
-  const [clock,setClock]=useState<number|null>(null);
   const [geo, setGeo] = useState<RegionCollection | null>(null);
   const [state, setState] = useState<AppState>("SINGAPORE_OVERVIEW");
   const [activePage,setActivePage]=useState<'overview'|'operations'|'incidents'>(initialPage);
@@ -156,10 +187,8 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
   useEffect(()=>{
     const start=setTimeout(()=>{
       setBusinessDate(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Singapore',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
-      setClock(Date.now());
     },0);
-    const timer=setInterval(()=>setClock(Date.now()),1000);
-    return()=>{clearTimeout(start);clearInterval(timer);};
+    return()=>clearTimeout(start);
   },[]);
 
   useEffect(()=>{
@@ -174,18 +203,6 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
     void refresh();const timer=setInterval(()=>void refresh(),15000);
     return()=>{controller.abort();clearInterval(timer);};
   },[source,businessDate,overviewRevision,activePage]);
-
-  useEffect(()=>{
-    if(source!=='api'||activePage!=='overview'||!planId)return;
-    const controller=new AbortController();let pending=false;
-    const timer=setInterval(async()=>{
-      if(pending)return;pending=true;
-      try{const data=await loadPositions(businessDate,controller.signal);if(!controller.signal.aborted)setSnapshot(current=>current&&current.dashboard.current_plan.delivery_plan_id===data.delivery_plan_id?{...current,positions:data}:current);}
-      catch{if(!controller.signal.aborted)setSnapshot(current=>current?{...current,positions:null}:current);}
-      finally{pending=false;}
-    },1000);
-    return()=>{controller.abort();clearInterval(timer);};
-  },[source,businessDate,activePage,planId]);
 
   useEffect(() => {
     Promise.all([
@@ -220,10 +237,10 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
       <header className="nexus-header"><div><h1>Good morning, Alex.</h1><p>{source==='api'?'Current-plan operational snapshot from PenroseRoute.':"Everything in motion. We'll help you keep it that way."}</p></div>
         <div className="header-tools overview-controls"><input aria-label="Business Date" type="date" value={businessDate} onChange={event=>{if(event.target.value){setSnapshot(null);setBackendError(null);setBusinessDate(event.target.value);}}}/><button aria-label="Refresh Overview" disabled={backendBusy||source==='demo'} onClick={()=>setOverviewRevision(value=>value+1)}><RefreshCw/></button><span className="user-avatar"><UserRound/></span></div>
       </header>
-      <section className="kpi-row">{(source==='api'?backendKpi:KPI).map((item) => <KpiCard key={item.label} item={item} demo={source==='demo'}/>)}<div className="clock-card"><small>{clock===null?'—':new Intl.DateTimeFormat('en-SG',{timeZone:'Asia/Singapore',weekday:'short',day:'2-digit',month:'short',year:'numeric'}).format(clock)}</small><strong>{clock===null?'—':new Intl.DateTimeFormat('en-SG',{timeZone:'Asia/Singapore',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(clock)}</strong></div></section>
+      <section className="kpi-row">{(source==='api'?backendKpi:KPI).map((item) => <KpiCard key={item.label} item={item} demo={source==='demo'}/>)}<ClockCard/></section>
       {source==='api'&&(backendError||snapshot?.warnings.length)?<div className="overview-data-status" role="status">{backendError?`Overview data unavailable: ${backendError}`:snapshot?.warnings.join(' · ')}</div>:null}
       <section className={`hero-map ${selectedRegion ? "has-region-focus" : ""}`}>
-        {geo ? <SingaporeScene active={activePage==='overview'&&documentVisible} geo={geo} selectedRegion={selectedRegion} onSelectRegion={selectRegion} onHoverRegion={setHoveredRegion} command={command} onMotionChange={setCameraBusy} onIncident={stageIncident} source={source} positions={source==='api'?snapshot?.positions??null:null}/> : <div className="map-loading"><Box/><span>Building Singapore model…</span></div>}
+        {geo ? <LiveSingaporeScene active={activePage==='overview'&&documentVisible} geo={geo} selectedRegion={selectedRegion} onSelectRegion={selectRegion} onHoverRegion={setHoveredRegion} command={command} onMotionChange={setCameraBusy} onIncident={stageIncident} source={source} businessDate={businessDate} planId={planId} initialPositions={snapshot?.positions??null}/> : <div className="map-loading"><Box/><span>Building Singapore model…</span></div>}
         <div className="map-vignette"/><MapOverlay state={state} selectedRegion={selectedRegion} hoveredRegion={hoveredRegion} onReset={reset} onViewCommand={viewCommand} cameraBusy={cameraBusy} source={source} snapshot={snapshot}/>
       </section>
       <section className="bottom-grid"><VehiclePanel source={source} snapshot={snapshot} businessDate={businessDate}/><IncidentPanel source={source} snapshot={snapshot} businessDate={businessDate} onIncident={()=>stageIncident()}/><AgentPanel source={source} snapshot={snapshot} state={state}/></section>

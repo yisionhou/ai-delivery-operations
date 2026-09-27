@@ -2,7 +2,7 @@
 
 import { ContactShadows, Environment, Lightformer } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import { createContext, memo, useContext, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import * as THREE from "three";
 import { TessellateModifier } from "three/addons/modifiers/TessellateModifier.js";
 import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
@@ -34,6 +34,7 @@ export type RegionCollection = { type: "FeatureCollection"; features: RegionFeat
 const SCALE = 70;
 const toScene = ([lon, lat]: Position): [number, number] => [(lon - 103.82) * SCALE, (lat - 1.35) * SCALE];
 const TerrainContext=createContext<Landform|null>(null);
+const PositionsContext=createContext<OverviewPositions|null>(null);
 function useTerrain(){const terrain=useContext(TerrainContext);if(!terrain)throw new Error('Missing shared landform');return terrain;}
 const PRESENTATION = new THREE.Vector3(-4, 0, 10);
 function regionLayout(feature:RegionFeature,surfaceAt:Landform['surface']) {
@@ -237,9 +238,14 @@ function RouteGeometry({route,feature,emphasis=false,showVehicle=true}:{route:Ro
   </group>;
 }
 
-function RegionGroup({feature,boundary,selected,muted,hovered,onHover,onSelect,gate,visibility,onIncident,source,positions}:{
+function RegionVehicleMarkers({feature}:{feature:RegionFeature}){
+  const positions=useContext(PositionsContext);
+  return positions?.vehicles.filter(vehicle=>Number.isFinite(vehicle.longitude)&&Number.isFinite(vehicle.latitude)&&containsLand([vehicle.longitude,vehicle.latitude],feature)).map(vehicle=><SimulatedVehicle key={vehicle.vehicle_id} longitude={vehicle.longitude} latitude={vehicle.latitude} motion={vehicle.motion}/>)??null;
+}
+
+function RegionGroup({feature,boundary,selected,muted,hovered,onHover,onSelect,gate,visibility,onIncident,source}:{
   onIncident?:(id:string)=>void;
-  source:'api'|'demo';positions:OverviewPositions|null;
+  source:'api'|'demo';
   visibility:VisibilitySettings;
   boundary:BoundarySegment[];
   feature:RegionFeature;selected:boolean;muted:boolean;hovered:boolean;onHover:(key:RegionKey,active:boolean)=>void;onSelect:(key:RegionKey)=>void;gate:MutableRefObject<InspectionGate>;
@@ -335,7 +341,7 @@ function RegionGroup({feature,boundary,selected,muted,hovered,onHover,onSelect,g
       <mesh name="physical-edge-finish" geometry={edge.geometry} material={edge.material} raycast={noDecorationRaycast}/>
       <ArchitecturalDistrict feature={feature}/>
       {ROUTES[key].map((route,i)=><RouteGeometry key={route.id} route={route} feature={feature} emphasis={i===0} showVehicle={source==='demo'}/>)}
-      {source==='api'&&positions?.vehicles.filter(vehicle=>Number.isFinite(vehicle.longitude)&&Number.isFinite(vehicle.latitude)&&containsLand([vehicle.longitude,vehicle.latitude],feature)).map(vehicle=><SimulatedVehicle key={vehicle.vehicle_id} longitude={vehicle.longitude} latitude={vehicle.latitude} motion={vehicle.motion}/>)}
+      {source==='api'&&<RegionVehicleMarkers feature={feature}/>}
       {LABELS[key].map((label)=><PlaceLabel key={label.text} {...label}/>)}
       {source==='demo'&&key===incident.regionKey&&<IncidentBeacon onIncident={onIncident} gate={gate}/>}
     </group>
@@ -344,9 +350,9 @@ function RegionGroup({feature,boundary,selected,muted,hovered,onHover,onSelect,g
 
 // Uniform gain preserves the approved light positions, colors and relative distribution.
 const MAP_LIGHT_GAIN=1.3;
-function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotionChange,visibility,onIncident,source,positions}:{
+const World=memo(function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotionChange,visibility,onIncident,source}:{
   onIncident?:(id:string)=>void;
-  source:'api'|'demo';positions:OverviewPositions|null;
+  source:'api'|'demo';
   visibility:VisibilitySettings;
   geo:RegionCollection;selectedRegion:RegionKey|null;onSelectRegion:(key:RegionKey)=>void;onHoverRegion:(key:RegionKey|null)=>void;command:CameraCommand;onMotionChange:(busy:boolean)=>void;
 }) {
@@ -378,7 +384,7 @@ function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotion
     </Environment>
     <group position={[0,-.2,0]}>
       {geo.features.map((feature)=><RegionGroup key={feature.properties.REGION_N} feature={feature}
-        visibility={visibility} onIncident={onIncident} source={source} positions={positions}
+        visibility={visibility} onIncident={onIncident} source={source}
         boundary={boundaries[feature.properties.REGION_N]}
         selected={feature.properties.REGION_N===selectedRegion}
         muted={!!selectedRegion&&feature.properties.REGION_N!==selectedRegion}
@@ -394,7 +400,7 @@ function World({geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotion
     <InspectionCamera selectedRegion={selectedRegion} layouts={layouts} command={command} gate={gate} onMotionChange={onMotionChange}/>
     <SceneTelemetry/>
   </TerrainContext.Provider>;
-}
+});
 
 export default function SingaporeScene({active,geo,selectedRegion,onSelectRegion,onHoverRegion,command,onMotionChange,onIncident,source='demo',positions=null}:{
   active:boolean;
@@ -403,9 +409,9 @@ export default function SingaporeScene({active,geo,selectedRegion,onSelectRegion
   geo:RegionCollection;selectedRegion:RegionKey|null;onSelectRegion:(key:RegionKey)=>void;onHoverRegion:(key:RegionKey|null)=>void;command:CameraCommand;onMotionChange:(busy:boolean)=>void;
 }) {
   const [visibility,setVisibility]=useState(NORMAL_VISIBILITY);
-  return <><Canvas className="singapore-canvas" camera={{position:[2.7,27.5,19.6],fov:30,near:.1,far:120}} frameloop={active?'always':'never'}
+  return <><PositionsContext.Provider value={source==='api'?positions:null}><Canvas className="singapore-canvas" camera={{position:[2.7,27.5,19.6],fov:30,near:.1,far:120}} frameloop={active?'always':'never'}
     dpr={[1,1.45]} shadows="percentage" gl={{antialias:true,alpha:false,toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.2}}>
-    <World geo={geo} selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} onHoverRegion={onHoverRegion} command={command} onMotionChange={onMotionChange} visibility={visibility} onIncident={onIncident} source={source} positions={positions}/>
-  </Canvas><VisibilityControls value={visibility} onChange={setVisibility}/></>;
+    <World geo={geo} selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} onHoverRegion={onHoverRegion} command={command} onMotionChange={onMotionChange} visibility={visibility} onIncident={onIncident} source={source}/>
+  </Canvas></PositionsContext.Provider><VisibilityControls value={visibility} onChange={setVisibility}/></>;
 }
 
