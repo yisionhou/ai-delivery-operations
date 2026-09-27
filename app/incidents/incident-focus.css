@@ -1,11 +1,11 @@
 @import "./nexus-theme.css";
-@import "./focused-card-deck.css";
+@import "../recovery-review/focused-card-deck.css";
 
 /* Scoped to Incident; the shared sidebar and Overview retain their styles. */
-.incident-focus-page{height:100vh;min-width:0;overflow:auto;contain:paint;color:var(--nexus-text-primary);background:var(--nexus-bg);font-size:15px;scrollbar-width:thin;scrollbar-color:#655944 #0b1418}.incident-focus-page *{box-sizing:border-box}.incident-focus-page button{cursor:pointer;font:inherit}.incident-focus-page button:disabled{cursor:default}.incident-focus-page button:focus-visible,.incident-focus-page a:focus-visible{outline:2px solid #edd099;outline-offset:3px}.incident-focus-page svg{flex-shrink:0;width:18px;height:18px}.if-coral{color:#ff806c!important}.if-safe{color:#87d7b2!important}
+.incident-focus-page{height:100vh;min-width:0;overflow:auto;contain:paint;color:var(--nexus-text-primary);background:var(--nexus-bg);font-size:15px;scrollbar-width:thin;scrollbar-color:#655944 #0b1418}:is(.incident-focus-page,.recovery-review-theme) *{box-sizing:border-box}:is(.incident-focus-page,.recovery-review-theme) button{cursor:pointer;font:inherit}:is(.incident-focus-page,.recovery-review-theme) button:disabled{cursor:default}:is(.incident-focus-page,.recovery-review-theme) button:focus-visible,:is(.incident-focus-page,.recovery-review-theme) a:focus-visible{outline:2px solid #edd099;outline-offset:3px}:is(.incident-focus-page,.recovery-review-theme) svg{flex-shrink:0;width:18px;height:18px}.if-coral{color:#ff806c!important}.if-safe{color:#87d7b2!important}
 .if-map-hero{position:relative;height:clamp(650px,72vh,820px);isolation:isolate;overflow:hidden;border-bottom:1px solid #d3ad682e}.if-hero-heading{position:absolute;z-index:7;top:0;left:0;right:0;padding:22px 28px 55px;background:linear-gradient(#061015ed,#061015ab 66%,transparent);pointer-events:none}.if-hero-heading button{pointer-events:auto}.if-header{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:18px}.if-eyebrow{font-size:13px;letter-spacing:.12em;color:#acaeaa}.if-header h1{font:400 38px/1.12 Georgia,serif;margin:7px 0 8px;letter-spacing:-.025em;color:#f3ede1}.if-header p{margin:0;font-size:15px;color:#c5cbc9}.if-live{font-size:13px;letter-spacing:.06em;color:#e8d2a9;text-align:right}.if-live>span,.if-status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#93ccad;box-shadow:0 0 9px #8bcaac55;margin-right:8px}.if-live small{display:block;font-size:12px;color:#9aa6a7;margin-top:8px;letter-spacing:.06em}
 .if-modes{display:flex;gap:8px;width:max-content}.if-modes button{display:flex;align-items:center;gap:8px;background:#08171be8;border:1px solid #c8b88e3b;border-radius:5px;color:#bbc5c7;font-size:14px;padding:11px 15px;box-shadow:0 5px 20px #0003}.if-modes svg{width:16px;height:16px}.if-modes button[aria-pressed=true]{color:#fff1d2;border-color:#dfbd79;background:linear-gradient(120deg,#72603d75,#1c2426e8);box-shadow:0 0 15px #d3ad6826}.if-modes button:hover{border-color:#dfbd7999}
-.if-map{position:absolute;inset:0;overflow:hidden;background:#081216}.incident-focus-page .if-maplibre{position:absolute;inset:0;width:100%;height:100%}.if-map-caption{position:absolute;top:200px;left:28px;z-index:2;pointer-events:none;border-left:2px solid #d3ad6866;padding-left:11px;text-shadow:0 2px 5px #000}.if-map-caption>span{display:block;font-size:17px;color:#ddd6c3}.if-map-caption small{display:block;margin-top:5px;font-size:13px;color:#a0afb0}.if-map-controls{position:absolute;top:168px;right:22px;bottom:49px;z-index:8;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between}.if-map-controls button{pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:8px;background:#071317f2;border:1px solid #d3ad6866;color:#ebd2a0;padding:11px 13px;border-radius:5px;font-size:14px;box-shadow:0 5px 15px #0003}.if-map-controls>button{order:2}.if-map-controls>div{display:flex;flex-direction:column;gap:5px}.if-map-controls>div button{width:40px;height:40px;padding:9px}
+.if-map{position:absolute;inset:0;overflow:hidden;background:#081216}:is(.incident-focus-page,.recovery-review-theme) .if-maplibre{position:absolute;inset:0;width:100%;height:100%}.if-map-caption{position:absolute;top:200px;left:28px;z-index:2;pointer-events:none;border-left:2px solid #d3ad6866;padding-left:11px;text-shadow:0 2px 5px #000}.if-map-caption>span{display:block;font-size:17px;color:#ddd6c3}.if-map-caption small{display:block;margin-top:5px;font-size:13px;color:#a0afb0}.if-map-controls{position:absolute;top:168px;right:22px;bottom:49px;z-index:8;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between}.if-map-controls button{pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:8px;background:#071317f2;border:1px solid #d3ad6866;color:#ebd2a0;padding:11px 13px;border-radius:5px;font-size:14px;box-shadow:0 5px 15px #0003}.if-map-controls>button{order:2}.if-map-controls>div{display:flex;flex-direction:column;gap:5px}.if-map-controls>div button{width:40px;height:40px;padding:9px}
 .if-map-legend{position:absolute;bottom:44px;left:22px;display:flex;gap:20px;font-size:13px;color:#c5cecc;background:#081419eb;padding:12px 15px;border:1px solid #e6dcc42c;border-radius:5px;pointer-events:none;z-index:3}.if-map-legend span{display:flex;align-items:center;gap:9px}.if-map-legend i{width:24px;border-top:3px solid #f5d69e}.if-map-legend i.new{box-shadow:0 0 8px #edd09b70}.if-map-legend i.affected{border-top-style:dashed;border-color:#ff7462;filter:drop-shadow(0 0 4px #ff7462)}.if-map-legend i.old{border-color:#b2a78d;border-top-width:2px}.if-map-legend i.stop{width:12px;height:12px;border:2px solid #8bcab0;border-radius:50%}.if-map-attribution{position:absolute;bottom:0;right:0;left:0;background:#071115d9;padding:4px 10px;display:flex;gap:4px;align-items:center;justify-content:flex-end;font-size:11px;color:#96a5a5;z-index:3}.if-map-attribution a{color:#bbc5c2;text-decoration:none;display:inline-flex;align-items:center;gap:4px}.if-map-attribution img{width:19px;height:19px}.if-map-selection{position:absolute;bottom:99px;left:22px;display:flex;gap:12px;padding:10px 13px;border:1px solid #d3ad6860;border-radius:5px;background:#081317ef;color:#ebd6aa;font-size:15px;pointer-events:none;z-index:3}.if-map-selection span{color:#adbfba;font-size:14px}.if-map-message{position:absolute;top:265px;left:28px;background:#101b20f5;border:1px solid #d3ad6855;padding:14px;color:#e1d6bc;z-index:4;font-size:15px;display:flex;gap:14px;align-items:center}.if-map-message button{background:none;border:1px solid #d3ad6866;color:#e1d6bc;border-radius:4px;padding:7px}.if-map-plan-caption{display:flex;justify-content:space-between;gap:20px;padding:14px 26px;border-bottom:1px solid #e6dcc417;background:#0c171b;color:#c4b594;font-size:13px}.if-map-plan-caption>span:last-child{color:#92a1a4}
 .if-geo-marker{display:flex;align-items:center;gap:6px;padding:0;background:none;border:0;color:#e7d4ac;cursor:pointer;z-index:2;font-family:inherit}.if-geo-marker b{position:absolute;left:25px;font-size:15px;font-weight:500;white-space:nowrap;padding:7px 10px;border:1px solid #d3ad684d;border-radius:5px;background:#081419ee;box-shadow:0 5px 18px #0007}.if-geo-marker b small{display:block;margin-top:4px;color:#b9c5c4;font-size:13px;font-weight:400}.if-geo-dot{display:grid;place-items:center;width:17px;height:17px;border:1px solid #e3c68c;background:#302b20;border-radius:50%;box-shadow:0 0 10px #d3ad6855;font-size:12px}.if-geo-order .if-geo-dot{width:15px;height:15px;border:3px solid #ffad91;background:#e46653;box-shadow:0 0 15px #ff6d5455}.if-geo-order b{border-color:#dfab8144}.if-geo-vehicle .if-geo-dot{width:29px;height:27px;border-radius:5px;font-size:21px;background:#3b3427}.if-geo-vehicle b{left:35px}.if-geo-incident{z-index:5;color:#ff9881}.if-geo-incident .if-geo-dot{position:relative;background:#ba4439;border:2px solid #ffb6a3;width:34px;height:34px;font-size:25px;color:#fff0e9;box-shadow:0 0 0 7px #ff654f1a,0 0 25px #ff654f55}.if-geo-incident .if-geo-dot:before{content:'';position:absolute;inset:-9px;border:1px solid #ff836a88;border-radius:50%;animation:if-incident-pulse 2.8s ease-out infinite}.if-geo-incident b{left:44px;border-color:#ff654f88}.if-geo-incident b small{display:none;color:#ff9881}.if-geo-incident.incident-selected b small{display:block}.if-geo-completed .if-geo-dot{width:21px;height:21px;border-color:#95d8bb;background:#123629;color:#a4eccf;box-shadow:0 0 10px #91caa322}.if-geo-marker.selected{z-index:6}.if-geo-marker.selected .if-geo-dot{background:#ffe3aa;box-shadow:0 0 0 5px #d3ad6833,0 0 24px #d3ad6888;color:#21271e}.if-geo-marker.selected b{border-color:#e4c88c;color:#ffedc6}.if-geo-marker.dimmed{opacity:.4}.if-geo-marker:hover b{border-color:#e4c88c}.if-geo-marker.hidden-completed{display:none}.if-geo-marker.label-above b{left:-4px;bottom:25px}.if-geo-marker.label-below b{left:12px;top:25px}
 /* One floating container; it never participates in map sizing. */
@@ -39,98 +39,98 @@
 
 /* Neutral NEXUS surfaces. Geographic layers and map marker styling stay intact. */
 .incident-focus-page{scrollbar-color:var(--nexus-gold-line) var(--nexus-bg)}
-.incident-focus-page .if-coral{color:var(--nexus-danger)!important}
-.incident-focus-page .if-safe{color:var(--nexus-success)!important}
-.incident-focus-page .if-gold{color:var(--nexus-gold)!important}
-.incident-focus-page .if-header p,.incident-focus-page .if-live small{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-live>span,.incident-focus-page .if-status-dot{background:var(--nexus-gold);box-shadow:0 0 8px var(--nexus-gold-wash)}
+:is(.incident-focus-page,.recovery-review-theme) .if-coral{color:var(--nexus-danger)!important}
+:is(.incident-focus-page,.recovery-review-theme) .if-safe{color:var(--nexus-success)!important}
+:is(.incident-focus-page,.recovery-review-theme) .if-gold{color:var(--nexus-gold)!important}
+:is(.incident-focus-page,.recovery-review-theme) .if-header p,:is(.incident-focus-page,.recovery-review-theme) .if-live small{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-live>span,:is(.incident-focus-page,.recovery-review-theme) .if-status-dot{background:var(--nexus-gold);box-shadow:0 0 8px var(--nexus-gold-wash)}
 .incident-focus-page[data-candidate-status=APPLIED] .if-live>span,.incident-focus-page[data-candidate-status=APPLIED] .if-status-dot{background:var(--nexus-success);box-shadow:none}
-.incident-focus-page .if-floating-card{background:linear-gradient(135deg,var(--nexus-surface-elevated),var(--nexus-surface));border-color:var(--nexus-gold-line);backdrop-filter:blur(22px) saturate(0)}
-.incident-focus-page .if-summary dl{background:var(--nexus-surface);border-color:var(--nexus-border)}
-.incident-focus-page .if-summary dl>div,.incident-focus-page .if-entity-context dl>div{border-color:var(--nexus-border-subtle)}
-.incident-focus-page .if-summary p,.incident-focus-page .if-summary dt,.incident-focus-page .if-entity-context dt,.incident-focus-page .if-entity-context>p{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-summary small,.incident-focus-page .if-summary .if-eyebrow,.incident-focus-page .if-approval-note,.incident-focus-page .if-baseline,.incident-focus-page .if-change-summary>div>span{color:var(--nexus-text-muted)}
-.incident-focus-page .if-summary h2,.incident-focus-page .if-card-heading h2,.incident-focus-page .if-entity-context h2{color:var(--nexus-text-primary)}
-.incident-focus-page .if-card-close,.incident-focus-page .if-card-detail-link{background:var(--nexus-surface);border-color:var(--nexus-border);color:var(--nexus-text-secondary)}
-.incident-focus-page .if-card-heading>span{display:inline-flex;align-items:center;gap:4px;background:transparent;border-color:var(--nexus-gold-line);color:var(--nexus-gold)}
-.incident-focus-page .if-card-heading>span.applied{color:var(--nexus-success);border-color:var(--nexus-border)}
-.incident-focus-page .if-card-heading>span svg{width:13px;height:13px}
-.incident-focus-page .if-card-heading>span.stale{color:var(--nexus-danger);border-color:var(--nexus-danger)}
-.incident-focus-page .if-baseline b,.incident-focus-page .if-eligibility b{color:var(--nexus-text-primary)}
-.incident-focus-page .if-eligibility,.incident-focus-page .if-decision-actions{border-color:var(--nexus-border)}
-.incident-focus-page .if-eligibility>span{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-ineligible-reason{background:var(--nexus-gold-wash);border-color:var(--nexus-border);color:var(--nexus-danger)}
-.incident-focus-page .if-change-summary b{color:var(--nexus-gold-soft)}
-.incident-focus-page .if-change-summary>div>span:last-child b{color:var(--nexus-danger)}
-.incident-focus-page .if-approve{background:linear-gradient(115deg,var(--nexus-gold-soft),var(--nexus-gold));border-color:var(--nexus-gold-soft);color:var(--nexus-bg)}
-.incident-focus-page .if-approve:disabled{background:var(--nexus-surface);border-color:var(--nexus-border);color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-floating-card{background:linear-gradient(135deg,var(--nexus-surface-elevated),var(--nexus-surface));border-color:var(--nexus-gold-line);backdrop-filter:blur(22px) saturate(0)}
+:is(.incident-focus-page,.recovery-review-theme) .if-summary dl{background:var(--nexus-surface);border-color:var(--nexus-border)}
+:is(.incident-focus-page,.recovery-review-theme) .if-summary dl>div,:is(.incident-focus-page,.recovery-review-theme) .if-entity-context dl>div{border-color:var(--nexus-border-subtle)}
+:is(.incident-focus-page,.recovery-review-theme) .if-summary p,:is(.incident-focus-page,.recovery-review-theme) .if-summary dt,:is(.incident-focus-page,.recovery-review-theme) .if-entity-context dt,:is(.incident-focus-page,.recovery-review-theme) .if-entity-context>p{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-summary small,:is(.incident-focus-page,.recovery-review-theme) .if-summary .if-eyebrow,:is(.incident-focus-page,.recovery-review-theme) .if-approval-note,:is(.incident-focus-page,.recovery-review-theme) .if-baseline,:is(.incident-focus-page,.recovery-review-theme) .if-change-summary>div>span{color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-summary h2,:is(.incident-focus-page,.recovery-review-theme) .if-card-heading h2,:is(.incident-focus-page,.recovery-review-theme) .if-entity-context h2{color:var(--nexus-text-primary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-card-close,:is(.incident-focus-page,.recovery-review-theme) .if-card-detail-link{background:var(--nexus-surface);border-color:var(--nexus-border);color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-card-heading>span{display:inline-flex;align-items:center;gap:4px;background:transparent;border-color:var(--nexus-gold-line);color:var(--nexus-gold)}
+:is(.incident-focus-page,.recovery-review-theme) .if-card-heading>span.applied{color:var(--nexus-success);border-color:var(--nexus-border)}
+:is(.incident-focus-page,.recovery-review-theme) .if-card-heading>span svg{width:13px;height:13px}
+:is(.incident-focus-page,.recovery-review-theme) .if-card-heading>span.stale{color:var(--nexus-danger);border-color:var(--nexus-danger)}
+:is(.incident-focus-page,.recovery-review-theme) .if-baseline b,:is(.incident-focus-page,.recovery-review-theme) .if-eligibility b{color:var(--nexus-text-primary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-eligibility,:is(.incident-focus-page,.recovery-review-theme) .if-decision-actions{border-color:var(--nexus-border)}
+:is(.incident-focus-page,.recovery-review-theme) .if-eligibility>span{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-ineligible-reason{background:var(--nexus-gold-wash);border-color:var(--nexus-border);color:var(--nexus-danger)}
+:is(.incident-focus-page,.recovery-review-theme) .if-change-summary b{color:var(--nexus-gold-soft)}
+:is(.incident-focus-page,.recovery-review-theme) .if-change-summary>div>span:last-child b{color:var(--nexus-danger)}
+:is(.incident-focus-page,.recovery-review-theme) .if-approve{background:linear-gradient(115deg,var(--nexus-gold-soft),var(--nexus-gold));border-color:var(--nexus-gold-soft);color:var(--nexus-bg)}
+:is(.incident-focus-page,.recovery-review-theme) .if-approve:disabled{background:var(--nexus-surface);border-color:var(--nexus-border);color:var(--nexus-text-muted)}
 .incident-focus-page[data-candidate-status=APPLIED] .if-approve:disabled{color:var(--nexus-text-primary)}
 .incident-focus-page[data-candidate-status=APPLIED] .if-approve>svg{color:var(--nexus-success)}
-.incident-focus-page .if-decision-actions>div>button{background:var(--nexus-surface);border-color:var(--nexus-border);color:var(--nexus-text-primary)}
-.incident-focus-page .if-decision-actions>div>button:hover:not(:disabled){border-color:var(--nexus-gold)}
-.incident-focus-page .if-review-content{scrollbar-color:var(--nexus-gold-line) var(--nexus-bg)}
-.incident-focus-page .if-map-plan-caption{background:var(--nexus-surface);border-color:var(--nexus-border-subtle);color:var(--nexus-gold-soft)}
-.incident-focus-page .if-map-plan-caption>span:last-child{color:var(--nexus-text-muted)}
-.incident-focus-page .if-detail-section{background:var(--nexus-surface);border-color:var(--nexus-border);box-shadow:0 12px 30px #0003}
-.incident-focus-page .if-detail-section h2,.incident-focus-page .if-review-toolbar h3{color:var(--nexus-text-primary)}
-.incident-focus-page .if-detail-section>header p,.incident-focus-page .if-review-toolbar p{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-detail-section>header>a{background:var(--nexus-surface);border-color:var(--nexus-gold-line);color:var(--nexus-gold-soft)}
-.incident-focus-page .if-orders th{background:var(--nexus-surface-elevated);color:var(--nexus-text-secondary);border-color:var(--nexus-border)}
-.incident-focus-page .if-orders td{color:var(--nexus-text-primary);border-color:var(--nexus-border-subtle)}
-.incident-focus-page .if-orders td.if-original-eta{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-orders td button{background:var(--nexus-surface);color:var(--nexus-gold-soft);border-color:var(--nexus-gold-line)}
-.incident-focus-page .if-orders tr.selected,.incident-focus-page .if-orders tbody tr:hover{background:var(--nexus-gold-wash)}
-.incident-focus-page .if-orders tr.selected{outline-color:var(--nexus-gold-line)}
-.incident-focus-page .if-order-status,.incident-focus-page .if-order-status.applied{color:var(--nexus-gold-soft);border-color:var(--nexus-gold-line);background:transparent}
-.incident-focus-page .if-order-status small{color:var(--nexus-text-muted)}
-.incident-focus-page .if-order-status.applied small{display:flex;align-items:center;gap:4px;color:var(--nexus-success)}
-.incident-focus-page .if-order-status.applied small svg{width:11px;height:11px}
-.incident-focus-page .if-comparison-context{border-color:var(--nexus-border)}
-.incident-focus-page .if-comparison-context p,.incident-focus-page .if-comparison-context>small{color:var(--nexus-text-muted)}
-.incident-focus-page .if-comparison-context p>b{color:var(--nexus-text-primary)}
-.incident-focus-page .if-comparison-kicker,.incident-focus-page .if-review-card-kind{color:var(--nexus-gold)}
-.incident-focus-page .if-review-cause{color:var(--nexus-text-muted)}
-.incident-focus-page .if-review-cause b{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-review-toolbar button{background:var(--nexus-surface-elevated);border-color:var(--nexus-gold-line);color:var(--nexus-gold-soft)}
-.incident-focus-page .if-review-toolbar button:hover:not(:disabled){background:var(--nexus-gold-wash);border-color:var(--nexus-gold)}
-.incident-focus-page .if-review-toolbar small{color:var(--nexus-text-muted)}
-.incident-focus-page .if-review-card,.incident-focus-page .if-review-card.gold{background:var(--nexus-surface-elevated);border-color:var(--nexus-border)}
-.incident-focus-page .if-review-card h3{color:var(--nexus-text-primary)}
-.incident-focus-page .if-review-card-top small{color:var(--nexus-text-muted)}
-.incident-focus-page .if-review-card-top>span{color:var(--nexus-gold);border-color:var(--nexus-gold-line);background:var(--nexus-gold-wash)}
-.incident-focus-page .if-review-card.coral .if-review-card-top>span{color:var(--nexus-danger);border-color:var(--nexus-border);background:transparent}
-.incident-focus-page .if-card-lead,.incident-focus-page .if-card-location,.incident-focus-page .if-task-hero>span,.incident-focus-page .if-review-stats>span,.incident-focus-page .if-card-eta{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-review-stats b,.incident-focus-page .if-task-hero>b{color:var(--nexus-gold-soft)}
-.incident-focus-page .if-preserved{background:transparent;border-color:var(--nexus-border);color:var(--nexus-text-secondary)}
-.incident-focus-page .if-preserved svg,.incident-focus-page .if-protected-note svg,.incident-focus-page .if-review-footnote svg{color:var(--nexus-success)}
-.incident-focus-page .if-review-chip{background:transparent;border-color:var(--nexus-gold-line);color:var(--nexus-gold-soft)}
-.incident-focus-page .if-review-chip.safe{color:var(--nexus-success);border-color:var(--nexus-border);background:transparent}
-.incident-focus-page .if-vehicle-transfer{border-color:var(--nexus-border)}
-.incident-focus-page .if-vehicle-transfer small,.incident-focus-page .if-order-eta-pair small{color:var(--nexus-text-muted)}
-.incident-focus-page .if-vehicle-transfer b{color:var(--nexus-text-primary)}
-.incident-focus-page .if-vehicle-transfer>span:last-child b,.incident-focus-page .if-order-eta-pair{color:var(--nexus-gold-soft)}
-.incident-focus-page .if-card-eta b,.incident-focus-page .if-order-eta-pair>span:last-child,.incident-focus-page .if-eta-card-rows b{color:var(--nexus-danger)}
-.incident-focus-page .if-card-map-link,.incident-focus-page .if-eta-card-rows button,.incident-focus-page .if-comparison-link{color:var(--nexus-gold-soft)}
-.incident-focus-page .if-order-pills>button{color:var(--nexus-gold-soft);border-color:var(--nexus-gold-line);background:var(--nexus-surface)}
-.incident-focus-page .if-review-card-footer,.incident-focus-page .if-eta-card-rows>div{border-color:var(--nexus-border-subtle)}
-.incident-focus-page .if-review-card-footer p,.incident-focus-page .if-eta-card-rows small{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-task-explanation{margin:0;font-size:14px;line-height:1.65}
-.incident-focus-page .if-applied-confirmation{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--nexus-success)}
-.incident-focus-page .if-applied-confirmation svg{width:13px;height:13px}
-.incident-focus-page .if-metric>b{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-metric>span{color:var(--nexus-gold-soft)}
-.incident-focus-page .if-metric>small{color:var(--nexus-text-muted)}
-.incident-focus-page .if-metric .if-unavailable{color:var(--nexus-text-secondary);border-color:var(--nexus-border)}
-.incident-focus-page .if-review-footnote,.incident-focus-page .if-review-footnote>span:last-child,.incident-focus-page .if-protected-note{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-vehicle-detail article,.incident-focus-page .if-impact-grid>div{background:var(--nexus-surface-elevated);border-color:var(--nexus-border)}
-.incident-focus-page .if-vehicle-detail h3,.incident-focus-page .if-impact-grid b{color:var(--nexus-text-primary)}
-.incident-focus-page .if-vehicle-detail p,.incident-focus-page .if-impact-grid span{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-vehicle-detail small,.incident-focus-page .if-workflow-status small{color:var(--nexus-text-muted)}
-.incident-focus-page .if-vehicle-detail span{color:var(--nexus-gold-soft)}
-.incident-focus-page .if-workflow-status{border-color:var(--nexus-border);color:var(--nexus-text-secondary)}
-.incident-focus-page .if-page-footer{background:var(--nexus-bg);border-color:var(--nexus-border);color:var(--nexus-text-muted)}
-.incident-focus-page .if-decision-dialog{background:var(--nexus-surface-elevated);color:var(--nexus-text-primary);border-color:var(--nexus-gold-line)}
-.incident-focus-page .if-decision-dialog label,.incident-focus-page .if-decision-dialog p,.incident-focus-page .if-fixed-constraint{color:var(--nexus-text-secondary)}
-.incident-focus-page .if-decision-dialog textarea,.incident-focus-page .if-decision-dialog select{background:var(--nexus-bg);border-color:var(--nexus-border);color:var(--nexus-text-primary);outline-color:var(--nexus-gold)}
-.incident-focus-page .if-decision-dialog footer{border-color:var(--nexus-border);background:transparent}
-.incident-focus-page .if-decision-dialog .if-dialog-error{color:var(--nexus-danger)}
+:is(.incident-focus-page,.recovery-review-theme) .if-decision-actions>div>button{background:var(--nexus-surface);border-color:var(--nexus-border);color:var(--nexus-text-primary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-decision-actions>div>button:hover:not(:disabled){border-color:var(--nexus-gold)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-content{scrollbar-color:var(--nexus-gold-line) var(--nexus-bg)}
+:is(.incident-focus-page,.recovery-review-theme) .if-map-plan-caption{background:var(--nexus-surface);border-color:var(--nexus-border-subtle);color:var(--nexus-gold-soft)}
+:is(.incident-focus-page,.recovery-review-theme) .if-map-plan-caption>span:last-child{color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-detail-section{background:var(--nexus-surface);border-color:var(--nexus-border);box-shadow:0 12px 30px #0003}
+:is(.incident-focus-page,.recovery-review-theme) .if-detail-section h2,:is(.incident-focus-page,.recovery-review-theme) .if-review-toolbar h3{color:var(--nexus-text-primary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-detail-section>header p,:is(.incident-focus-page,.recovery-review-theme) .if-review-toolbar p{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-detail-section>header>a{background:var(--nexus-surface);border-color:var(--nexus-gold-line);color:var(--nexus-gold-soft)}
+:is(.incident-focus-page,.recovery-review-theme) .if-orders th{background:var(--nexus-surface-elevated);color:var(--nexus-text-secondary);border-color:var(--nexus-border)}
+:is(.incident-focus-page,.recovery-review-theme) .if-orders td{color:var(--nexus-text-primary);border-color:var(--nexus-border-subtle)}
+:is(.incident-focus-page,.recovery-review-theme) .if-orders td.if-original-eta{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-orders td button{background:var(--nexus-surface);color:var(--nexus-gold-soft);border-color:var(--nexus-gold-line)}
+:is(.incident-focus-page,.recovery-review-theme) .if-orders tr.selected,:is(.incident-focus-page,.recovery-review-theme) .if-orders tbody tr:hover{background:var(--nexus-gold-wash)}
+:is(.incident-focus-page,.recovery-review-theme) .if-orders tr.selected{outline-color:var(--nexus-gold-line)}
+:is(.incident-focus-page,.recovery-review-theme) .if-order-status,:is(.incident-focus-page,.recovery-review-theme) .if-order-status.applied{color:var(--nexus-gold-soft);border-color:var(--nexus-gold-line);background:transparent}
+:is(.incident-focus-page,.recovery-review-theme) .if-order-status small{color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-order-status.applied small{display:flex;align-items:center;gap:4px;color:var(--nexus-success)}
+:is(.incident-focus-page,.recovery-review-theme) .if-order-status.applied small svg{width:11px;height:11px}
+:is(.incident-focus-page,.recovery-review-theme) .if-comparison-context{border-color:var(--nexus-border)}
+:is(.incident-focus-page,.recovery-review-theme) .if-comparison-context p,:is(.incident-focus-page,.recovery-review-theme) .if-comparison-context>small{color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-comparison-context p>b{color:var(--nexus-text-primary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-comparison-kicker,:is(.incident-focus-page,.recovery-review-theme) .if-review-card-kind{color:var(--nexus-gold)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-cause{color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-cause b{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-toolbar button{background:var(--nexus-surface-elevated);border-color:var(--nexus-gold-line);color:var(--nexus-gold-soft)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-toolbar button:hover:not(:disabled){background:var(--nexus-gold-wash);border-color:var(--nexus-gold)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-toolbar small{color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-card,:is(.incident-focus-page,.recovery-review-theme) .if-review-card.gold{background:var(--nexus-surface-elevated);border-color:var(--nexus-border)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-card h3{color:var(--nexus-text-primary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-card-top small{color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-card-top>span{color:var(--nexus-gold);border-color:var(--nexus-gold-line);background:var(--nexus-gold-wash)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-card.coral .if-review-card-top>span{color:var(--nexus-danger);border-color:var(--nexus-border);background:transparent}
+:is(.incident-focus-page,.recovery-review-theme) .if-card-lead,:is(.incident-focus-page,.recovery-review-theme) .if-card-location,:is(.incident-focus-page,.recovery-review-theme) .if-task-hero>span,:is(.incident-focus-page,.recovery-review-theme) .if-review-stats>span,:is(.incident-focus-page,.recovery-review-theme) .if-card-eta{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-stats b,:is(.incident-focus-page,.recovery-review-theme) .if-task-hero>b{color:var(--nexus-gold-soft)}
+:is(.incident-focus-page,.recovery-review-theme) .if-preserved{background:transparent;border-color:var(--nexus-border);color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-preserved svg,:is(.incident-focus-page,.recovery-review-theme) .if-protected-note svg,:is(.incident-focus-page,.recovery-review-theme) .if-review-footnote svg{color:var(--nexus-success)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-chip{background:transparent;border-color:var(--nexus-gold-line);color:var(--nexus-gold-soft)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-chip.safe{color:var(--nexus-success);border-color:var(--nexus-border);background:transparent}
+:is(.incident-focus-page,.recovery-review-theme) .if-vehicle-transfer{border-color:var(--nexus-border)}
+:is(.incident-focus-page,.recovery-review-theme) .if-vehicle-transfer small,:is(.incident-focus-page,.recovery-review-theme) .if-order-eta-pair small{color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-vehicle-transfer b{color:var(--nexus-text-primary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-vehicle-transfer>span:last-child b,:is(.incident-focus-page,.recovery-review-theme) .if-order-eta-pair{color:var(--nexus-gold-soft)}
+:is(.incident-focus-page,.recovery-review-theme) .if-card-eta b,:is(.incident-focus-page,.recovery-review-theme) .if-order-eta-pair>span:last-child,:is(.incident-focus-page,.recovery-review-theme) .if-eta-card-rows b{color:var(--nexus-danger)}
+:is(.incident-focus-page,.recovery-review-theme) .if-card-map-link,:is(.incident-focus-page,.recovery-review-theme) .if-eta-card-rows button,:is(.incident-focus-page,.recovery-review-theme) .if-comparison-link{color:var(--nexus-gold-soft)}
+:is(.incident-focus-page,.recovery-review-theme) .if-order-pills>button{color:var(--nexus-gold-soft);border-color:var(--nexus-gold-line);background:var(--nexus-surface)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-card-footer,:is(.incident-focus-page,.recovery-review-theme) .if-eta-card-rows>div{border-color:var(--nexus-border-subtle)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-card-footer p,:is(.incident-focus-page,.recovery-review-theme) .if-eta-card-rows small{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-task-explanation{margin:0;font-size:14px;line-height:1.65}
+:is(.incident-focus-page,.recovery-review-theme) .if-applied-confirmation{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--nexus-success)}
+:is(.incident-focus-page,.recovery-review-theme) .if-applied-confirmation svg{width:13px;height:13px}
+:is(.incident-focus-page,.recovery-review-theme) .if-metric>b{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-metric>span{color:var(--nexus-gold-soft)}
+:is(.incident-focus-page,.recovery-review-theme) .if-metric>small{color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-metric .if-unavailable{color:var(--nexus-text-secondary);border-color:var(--nexus-border)}
+:is(.incident-focus-page,.recovery-review-theme) .if-review-footnote,:is(.incident-focus-page,.recovery-review-theme) .if-review-footnote>span:last-child,:is(.incident-focus-page,.recovery-review-theme) .if-protected-note{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-vehicle-detail article,:is(.incident-focus-page,.recovery-review-theme) .if-impact-grid>div{background:var(--nexus-surface-elevated);border-color:var(--nexus-border)}
+:is(.incident-focus-page,.recovery-review-theme) .if-vehicle-detail h3,:is(.incident-focus-page,.recovery-review-theme) .if-impact-grid b{color:var(--nexus-text-primary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-vehicle-detail p,:is(.incident-focus-page,.recovery-review-theme) .if-impact-grid span{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-vehicle-detail small,:is(.incident-focus-page,.recovery-review-theme) .if-workflow-status small{color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-vehicle-detail span{color:var(--nexus-gold-soft)}
+:is(.incident-focus-page,.recovery-review-theme) .if-workflow-status{border-color:var(--nexus-border);color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-page-footer{background:var(--nexus-bg);border-color:var(--nexus-border);color:var(--nexus-text-muted)}
+:is(.incident-focus-page,.recovery-review-theme) .if-decision-dialog{background:var(--nexus-surface-elevated);color:var(--nexus-text-primary);border-color:var(--nexus-gold-line)}
+:is(.incident-focus-page,.recovery-review-theme) .if-decision-dialog label,:is(.incident-focus-page,.recovery-review-theme) .if-decision-dialog p,:is(.incident-focus-page,.recovery-review-theme) .if-fixed-constraint{color:var(--nexus-text-secondary)}
+:is(.incident-focus-page,.recovery-review-theme) .if-decision-dialog textarea,:is(.incident-focus-page,.recovery-review-theme) .if-decision-dialog select{background:var(--nexus-bg);border-color:var(--nexus-border);color:var(--nexus-text-primary);outline-color:var(--nexus-gold)}
+:is(.incident-focus-page,.recovery-review-theme) .if-decision-dialog footer{border-color:var(--nexus-border);background:transparent}
+:is(.incident-focus-page,.recovery-review-theme) .if-decision-dialog .if-dialog-error{color:var(--nexus-danger)}

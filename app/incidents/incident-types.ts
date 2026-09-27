@@ -21,7 +21,7 @@ export interface Comparison {
   baseIsCurrent:boolean;comparable:boolean;approvalEligible:boolean;staleReason:string|null;
   assignmentChanges:AssignmentChange[];stopChanges:TaskChange[];etaChanges:EtaChange[];
   unassignedChanges:{orderId:string;from:'ASSIGNED'|'UNASSIGNED';to:'ASSIGNED'|'UNASSIGNED';reason:string}[];
-  disturbanceSummary:{reassignedOrders:number;affectedVehicles:number;routeTasksChanged:number;routeSummary:string;etaSummary:string;protectedWork:string};
+  disturbanceSummary:{reassignedOrders:number;affectedVehicles:number;routeTasksChanged:number;routeSummary:string;etaSummary:string;protectedWork:string;completedStopsProtected?:number|null;routeTasksUnchanged?:number|null;protectedCountsUnavailableReason?:string};
   remainingMetrics:{distance:RemainingMetric;duration:RemainingMetric};missingMetrics:{metric:string;reason:string}[];
   // Explicit comparison overlay geometry supplied by the mock/backend; UI does not diff plans.
   mapChanges:{base:LineString;candidate:Record<string,LineString>;orderIds:string[];vehicleIds:string[]};

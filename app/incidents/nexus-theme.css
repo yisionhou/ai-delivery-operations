@@ -1,5 +1,5 @@
 /* Opt-in NEXUS surfaces. Existing map / Overview palettes are independent. */
-:where(.nexus-theme,.incident-focus-page){
+:where(.nexus-theme,.incident-focus-page,.recovery-review-theme){
   --nexus-bg:#080a0b;
   --nexus-surface:rgba(12,14,15,.94);
   --nexus-surface-elevated:rgba(23,25,26,.96);
