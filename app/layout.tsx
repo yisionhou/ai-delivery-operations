@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./reference.css";
+import "./penrose-brand.css";
 import "./region-focus.css";
 import "./incidents/incident-focus.css";
 import "./operations/operations.css";

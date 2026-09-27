@@ -68,13 +68,22 @@ test('an attempt without a candidate does not invent recovery metrics',()=>{
   assert.equal(view.coverage.ratio,null);
 });
 
-test('the demo fixture is internally consistent across attempts',()=>{
-  const ready=demoAnalyticsSnapshots.find(item=>item.attempt.id==='REC-007-2');
-  const failed=demoAnalyticsSnapshots.find(item=>item.attempt.id==='REC-007-1');
+test('the test database snapshot reports only supported recovery results',()=>{
+  const ready=demoAnalyticsSnapshots.find(item=>item.attempt.number===2);
+  const failed=demoAnalyticsSnapshots.find(item=>item.attempt.number===1);
   assert.ok(ready);
   assert.ok(failed);
   const view=buildAnalytics(ready);
-  assert.deepEqual([view.recovered,view.affected,view.reassigned,view.distanceChangeKm,view.costChange],[4,6,3,12.4,3.1]);
+  assert.equal(ready.incident.code,'INC-20260927-F5677A5FC22B');
+  assert.equal(ready.candidatePlan,'PLAN-20260927-V2');
+  assert.deepEqual([view.recovered,view.affected,view.reassigned,view.distanceChangeKm,view.costChange],[3,3,3,null,null]);
+  assert.deepEqual(view.assigned,{base:74,candidate:74});
+  assert.deepEqual(view.unassigned,{base:0,candidate:0});
+  assert.equal(view.coverage.label,'100%');
+  assert.equal(view.rows.filter(row=>row.result==='Handover').length,3);
   assert.equal(view.rows.filter(row=>row.result==='Frozen').length,1);
+  assert.equal(view.rows.find(row=>row.code==='ORD-20260927-002').etaDeltaSeconds,1271);
+  assert.match(view.distanceReason,/comparable remaining-route snapshot/i);
+  assert.match(view.costReason,/comparable remaining distance.*mileage rate/i);
   assert.equal(buildAnalytics(failed).coverage.ratio,null);
 });

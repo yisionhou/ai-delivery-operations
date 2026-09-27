@@ -38,7 +38,8 @@ try{
  assert.ok(Math.hypot(before[0]-after[0],before[1]-after[1])>1);
  assert.equal(await page.locator('.pe-orbits').count(),2);
  check('One Blender video core is shared across scenes with stable framing and moving front/back orbital light points');
- await select('A');assert.equal(await page.locator('.rr-progress [aria-current=step]').textContent(),'Review');
+ await select('A');assert.deepEqual(errors,[], 'Review layout must not trigger ResizeObserver errors');
+ assert.equal(await page.locator('.rr-progress [aria-current=step]').textContent(),'Review');
  assert.equal(await page.locator('.rr-progress li[data-status=complete]').count(),1);
  assert.equal(await page.getByRole('button',{name:'What changed',exact:true}).count(),0);
  assert.equal(await page.locator('.if-focus-deck').count(),0);
@@ -59,6 +60,7 @@ try{
  assert.ok(Math.abs(dispatchBox.y-confirmBox.y)<1);
  check('Selecting A immediately opens Change Overview; Confirm stays in view at 1672/1366px and becomes Dispatch in the same location');
  await page.getByRole('button',{name:'Dispatch / Apply',exact:true}).click();await state('preview-applied');await page.waitForTimeout(1500);
+ assert.deepEqual(errors,[], 'Dispatch / Apply layout must not trigger ResizeObserver errors');
  assert.equal(await page.locator('.rr-progress li[data-status=complete]').count(),4);
  assert.equal(await page.locator('.if-focus-deck').count(),2);
  assert.equal(await page.getByRole('button',{name:'Compare options',exact:true}).count(),0);

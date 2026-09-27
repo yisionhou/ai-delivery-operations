@@ -14,7 +14,7 @@ export interface AssignmentChange {
   change:string;reassigned:boolean;reason:string;
 }
 export interface EtaChange {orderId:string;oldEta:string|null;newEta:string|null;delta:string|null;baseline:string;unavailableReason:string|null}
-export interface TaskChange {action:'Pickup'|'Delivery'|'Handover';change:'Added'|'Removed'|'Reordered';vehicle:string;orders:string[];location:string;reason:string}
+export interface TaskChange {action:'Pickup'|'Delivery'|'Handover';change:'Added'|'Removed'|'Reordered'|'Modified';vehicle:string;orders:string[];location:string;reason:string}
 export interface RemainingMetric {comparable:boolean;base:string|null;candidate:string|null;delta:string|null;reason:string|null;baseline:string}
 export interface Comparison {
   businessDate:string;comparisonTime:string;basePlanId:string;candidatePlanId:string;candidateStatus:CandidateStatus;

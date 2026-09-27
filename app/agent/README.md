@@ -50,7 +50,7 @@ at their final pose, including after viewport changes. Only the delivered video,
 and Recovery breathing remain visibly animated. Reduced motion compresses the timeline to 480ms,
 disables camera travel and orbit/breathing loops, and places Hero directly at its destination.
 The onHandoff callback and penrose:entrance-complete window event fire once at workspace-ready.
-Back navigates to the existing Incident Focus demo route (/incidents?source=demo&incident_id=INC-007); it does not reset the entrance scene.
+Back navigates to the matching Incident view: the live incident in normal mode, or the Incident Focus demo in explicit demo mode.
 
 ## Approved assets and panel material
 
@@ -71,8 +71,13 @@ briefing-demo.ts is an isolated, explicitly labeled DEMO SNAPSHOT matching the a
 PLAN-023, INC-014, V03, O18/O25/O31. It is not an API response and is not presented as live telemetry.
 Quick prompts return predefined demo explanations. Free-text input is disabled and labeled unconnected.
 Enter Recovery continues into Recovery Options in the same route. Incident details and affected orders open accessible native dialogs for this demo snapshot.
-No recovery generation, plan approval, application or unsupported chat request is sent.
-The workspace has no navigation sidebar. In Briefing, Back navigates to Incident Focus (/incidents?source=demo&incident_id=INC-007). In Recovery Options, the same Back button reverses the Hero travel and returns to Briefing. Existing project pages remain separate.
+The demo snapshot sends no recovery, approval or chat request. Normal `/agent` mode instead loads the live Incident and operations facts, asks the read-only dispatch Agent, starts Recovery through the official `/api/incidents/{id}/recovery` command when needed, and requires an explicit dispatcher reason before approving a validated Candidate. The live route map links to the persisted Incident map. In Briefing, Back navigates to the matching Incident; in Recovery Options, Back returns to Briefing.
+
+## Live backend configuration
+
+Normal `/agent` uses live backend data. Use `/agent?source=demo` for the isolated visual demo. A specific incident can be opened with `/agent?incident_id=<UUID>`; otherwise the newest open incident is selected. The frontend server reads `PENROSE_API_URL`, `PENROSE_DISPATCH_TOKEN`, and the optional local-development-only `PENROSE_AGENT_LOCAL_ONLY` from its environment. The dispatcher token stays on the server and is forwarded only by the same-origin bridge to the official read-only dispatch, Recovery, and approval commands. Non-local writes stay disabled unless `PENROSE_AGENT_TRUSTED_AUTH_PROXY=true` is configured behind a gateway that strips untrusted identity headers and injects verified ChatGPT identity. The backend must run with its configured dispatcher authentication and `RECOVERY_ORCHESTRATION_MODE=agent`; restart it after changing its environment.
+
+The official Recovery response may contain no feasible Candidate; this is shown as manual intervention, not a fabricated plan. Existing pending Candidates are reused rather than re-solved. Comparison metrics absent from the backend remain unavailable in the UI. An explanation labeled deterministic or template fallback is never described as a successful model explanation. Approval changes the Current Plan only after the backend confirms it; the visual demo remains a preview.
 
 ## Verification
 

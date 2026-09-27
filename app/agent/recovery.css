@@ -111,6 +111,7 @@
 .pr-reassignments>div>span{font-size:7px;white-space:nowrap;color:#bda77d;position:absolute;right:0;top:13px}
 .pr-route-map{margin:0;min-width:0;background:#090f0fa3;border:1px solid #8e9a8617;border-radius:12px;padding:10px}
 .pr-route-map figcaption{display:flex;justify-content:space-between;gap:4px;font-size:9px;color:#b9c4b6}.pr-route-map figcaption span{font-size:7px;color:#748075}
+.pr-route-map p{font-size:10px;line-height:1.5;color:#aab5aa}.pr-route-map a{display:inline-flex;margin-top:8px}
 .pr-route-map svg{display:block;width:100%;max-height:145px;margin:5px auto}
 .pr-map-land{fill:#0e181a;stroke:#1e2b2b;stroke-width:.3}
 .pr-map-streets{stroke:#243332;stroke-width:.5}

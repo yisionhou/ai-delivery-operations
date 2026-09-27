@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useState} from 'react';
 import {useSearchParams} from 'next/navigation';
-import {ArrowLeft,AlertTriangle} from 'lucide-react';
+import {ArrowLeft} from 'lucide-react';
 import {StateMessage} from '../vehicles/vehicles-board';
 import {loadIncidentIndex,loadIncidentIndexMap,loadIncidentReview,loadIncidentFocusMap,type IncidentIndexItem,type IncidentIndexMap,type IncidentFocusMap,type IncidentReview} from './incident-read-api';
 import BackendIncidentMap from './backend-incident-map';
@@ -74,5 +74,5 @@ export default function BackendIncidentPage({id,date}:{id:string|null;date:strin
     return()=>controller.abort();
   },[id,date,attemptId,key,revision]);
   const data=loaded?.key===key?loaded.data:null,error=failure?.key===key?failure.message:null;
-  return <div className="vf-page vf-handoff bi-page"><div className="vf-detail-top">{backLink&&<a className="vf-back" href={backLink.href}><ArrowLeft/>{backLink.label}</a>}<span className="vf-demo">BACKEND DATA · READ ONLY</span></div><header className="vf-page-header"><div><span className="vf-eyebrow">INCIDENT WORKFLOW</span><h1>Incidents</h1><p>{id?`Selected Incident · ${id}`:`Business date · ${date}`}</p></div><AlertTriangle/></header>{error?<StateMessage title="Incident context unavailable" detail={error} retry={()=>setRevision(value=>value+1)}/>:!data?<StateMessage title="Loading Incident context…"/>:Array.isArray(data)?<IncidentIndex key={key} items={data} date={date}/>:<IncidentReviewView data={data} date={date}/>}</div>;
+  return <div className="vf-page vf-handoff bi-page"><div className="vf-detail-top">{backLink&&<a className="vf-back" href={backLink.href}><ArrowLeft/>{backLink.label}</a>}<span className="vf-demo">BACKEND DATA · READ ONLY</span></div><header className="vf-page-header"><div><span className="vf-eyebrow">INCIDENT WORKFLOW</span><h1>Incidents</h1><p>{id?`Selected Incident · ${id}`:`Business date · ${date}`}</p></div></header>{error?<StateMessage title="Incident context unavailable" detail={error} retry={()=>setRevision(value=>value+1)}/>:!data?<StateMessage title="Loading Incident context…"/>:Array.isArray(data)?<IncidentIndex key={key} items={data} date={date}/>:<IncidentReviewView data={data} date={date}/>}</div>;
 }

@@ -5,10 +5,11 @@ import PanelSurface from './panel-surface';
 import {CandidateReviewWorkspace} from './selected-candidate-review';
 import {taperedBranch} from './tapered-branch';
 import { briefingDemo } from './briefing-demo';
+import {incidentPageHref} from '../incidents/incident-navigation';
 import type { RecoveryCandidate, RecoveryOptionsData } from './recovery-types';
 import type { RecoveryController } from './use-recovery-workspace';
 
-const signed = (value: number, unit: string) => `${value > 0 ? '+' : value < 0 ? '−' : ''}${Math.abs(value)} ${unit}`;
+const signed = (value: number|null, unit: string) => value===null?'Unavailable':`${value > 0 ? '+' : value < 0 ? '−' : ''}${Math.abs(value)} ${unit}`;
 const endpointY = (index:number,count:number) => count===1?50:count===2?28+index*44:17+index*33;
 
 function CandidateMetrics({candidate, detail=false}:{candidate:RecoveryCandidate;detail?:boolean}){
@@ -20,7 +21,11 @@ function CandidateMetrics({candidate, detail=false}:{candidate:RecoveryCandidate
   </dl>;
 }
 
-function RouteImpactMap({candidate}:{candidate:RecoveryCandidate}){
+function RouteImpactMap({candidate,source,incidentId}:{candidate:RecoveryCandidate;source:'demo'|'live';incidentId:string}){
+  if(source==='live')return <figure className="pr-route-map"><figcaption>Route impact <span>Persisted plan comparison</span></figcaption>
+    <p>Route changes are based on saved Plan and Stop snapshots. View the Incident map for verified road geometry and pickup, handover and delivery nodes.</p>
+    <a className="pr-pill" href={incidentPageHref(candidate.reviewSnapshot?.comparison.businessDate??'',incidentId)}>View Incident route map <ArrowRight/></a>
+  </figure>;
   const route=candidate.routeImpact;
   const reassigned=new Set(candidate.orderReassignments.filter(o=>o.toResource!==o.fromResource).map(o=>o.orderId));
   const points=(ps:{x:number;y:number}[])=>ps.map(p=>`${p.x},${p.y}`).join(' ');
@@ -110,8 +115,8 @@ function BranchVisual({controller:c}:{controller:RecoveryController}){
       })}
       {noOptions&&<path className="pr-inactive-path" d={`M${w*.57} ${h*.5} H${w*.77}`}/>}
     </svg>
-    <div className="pr-plan-node"><span className="pr-node-disc"><ClipboardList/><span>Current<br/>Plan</span></span><small>{c.result?.currentPlanId??briefingDemo.plan}</small></div>
-    <div className="pr-incident-node"><span className="pr-node-disc"><TriangleAlert/></span><strong>{c.result?.resourceId??briefingDemo.incident.vehicle}</strong><small>Unavailable</small></div>
+    <div className="pr-plan-node"><span className="pr-node-disc"><ClipboardList/><span>Current<br/>Plan</span></span><small>{c.result?.currentPlanId??(c.demo?briefingDemo.plan:'—')}</small></div>
+    <div className="pr-incident-node"><span className="pr-node-disc"><TriangleAlert/></span><strong>{c.result?.resourceId??(c.demo?briefingDemo.incident.vehicle:'—')}</strong><small>Incident</small></div>
     <div className="pr-hero-destination" aria-hidden="true"/>
     <span className="pr-core-label">PENROSE CORE</span>
     <div className="pr-candidate-nodes">
@@ -139,7 +144,7 @@ function ManualIntervention({data,controller:c}:{data:RecoveryOptionsData;contro
     <h3>{c.manualReview?'Dispatcher review checklist':'Next steps for dispatcher'}</h3>
     <p>No automated recovery plan is feasible under the current constraints. Human judgment is required.</p>
     {c.manualReview?<div className="pr-manual-checklist">
-      <p className="pr-local-note">Local demo checklist · no changes are sent</p>
+      <p className="pr-local-note">{data.source==='demo'?'Local demo checklist · no changes are sent':'Manual review checklist · no automatic assignment is made'}</p>
       <h4>Affected orders</h4>
       {data.affectedOrderIds.map(id=><label key={id}><input type="checkbox"/>Reviewed {id} and its delivery window</label>)}
       <label><input type="checkbox"/>Reviewed resource capacity and availability</label>
@@ -150,10 +155,10 @@ function ManualIntervention({data,controller:c}:{data:RecoveryOptionsData;contro
       <li><ClipboardList/><span>Review affected orders<small>Check order details and impact</small></span></li>
       <li><Phone/><span>Contact merchant / rider<small>External action · not connected</small></span></li>
       <li><SlidersHorizontal/><span>Review constraints<small>Review delivery windows and capacity</small></span></li>
-      <li><RefreshCw/><span>Retry planning<small>Re-run the selected demo outcome</small></span></li>
+      <li><RefreshCw/><span>Retry planning<small>{data.source==='demo'?'Re-run the selected demo outcome':'Request another formal Recovery attempt'}</small></span></li>
       <li><UserRound/><span>Assign manually<small>Demo placeholder · no assignment sent</small></span></li>
     </ol>}
-    <dl className="pr-manual-context"><div><dt>Incident</dt><dd>{data.incidentId} · {data.resourceId} unavailable</dd></div><div><dt>Affected orders</dt><dd>{data.affectedOrdersCount}</dd></div><div><dt>Blocked reason</dt><dd>{data.blockedReason??'Current constraints cannot be met.'}</dd></div><div><dt>Status</dt><dd>Requires manual review</dd></div></dl>
+    <dl className="pr-manual-context"><div><dt>Incident</dt><dd>{data.incidentId} · {data.resourceId}</dd></div><div><dt>Affected orders</dt><dd>{data.affectedOrdersCount}</dd></div><div><dt>Blocked reason</dt><dd>{data.blockedReason??'Current constraints cannot be met.'}</dd></div><div><dt>Status</dt><dd>Requires manual review</dd></div></dl>
     {!c.manualReview&&<button className="pr-pill pr-primary" onClick={()=>c.setManualReview(true)}>Start Manual Intervention <ArrowRight/></button>}
     <button className="pr-pill" onClick={()=>c.generate(c.demoCount)}><RefreshCw/>Retry Planning</button>
   </div>;
@@ -172,13 +177,13 @@ function CandidateDetail({candidate,recommended,controller:c,close}:{candidate:R
       <div className="pr-detail-body">
         <section className="pr-reassignments"><h4>Order reassignment</h4>{candidate.orderReassignments.map(order=><div key={order.orderId}>
           <Package/><div><strong>{order.orderId}</strong><p>{order.fromResource===order.toResource?'Unchanged':`Reassign to ${order.toResource}`}</p>
-          <small>{order.fromResource===order.toResource?'Keep original assignment':`Pickup in ${order.pickupMinutes} min · Est. arrival ${order.arrival}`}</small></div>
+          <small>{order.fromResource===order.toResource?'Keep original assignment':order.arrival?`Planned delivery arrival ${order.arrival}`:'Delivery ETA unavailable'}</small></div>
           <span>{order.fromResource===order.toResource?'—':order.impact}</span>
         </div>)}</section>
-        <RouteImpactMap candidate={candidate}/>
+        <RouteImpactMap candidate={candidate} source={c.result?.source??'demo'} incidentId={c.result?.incidentId??''}/>
       </div>
       </div>
-      <section className="pr-reason"><h4>{recommended?'Why Penrose recommends this':'Why consider this option'}</h4><p>{candidate.recommendationReason}</p></section>
+      <section className="pr-reason"><h4>{candidate.explanationSource&&candidate.explanationSource!=='agent'?`${candidate.explanationSource.replaceAll('_',' ')} explanation · verified facts`:recommended?'Why Penrose recommends this':'Why consider this option'}</h4><p>{candidate.recommendationReason}</p></section>
 
       <div className="pr-detail-actions"><button className="pr-pill" onClick={close}>Compare options</button><button className="pr-pill pr-primary" onClick={()=>c.select(candidate)}>Select this option <ArrowRight/></button></div>
     </>
@@ -202,9 +207,17 @@ export default function RecoveryOptions({controller:c,demo=true}:{controller:Rec
   useLayoutEffect(()=>{
     const element=workspace.current,root=element?.closest<HTMLElement>('.pe-entrance');
     if(!element||!root)return;
-    const measure=()=>root.style.setProperty('--pr-content-height',element.offsetHeight+'px');
-    const observer=new ResizeObserver(measure);observer.observe(element);measure();
-    return ()=>{observer.disconnect();root.style.removeProperty('--pr-content-height');};
+    let frame=0;
+    const measure=()=>{
+      const height=element.offsetHeight+'px';
+      if(root.style.getPropertyValue('--pr-content-height')!==height)root.style.setProperty('--pr-content-height',height);
+    };
+    const observer=new ResizeObserver(()=>{
+      cancelAnimationFrame(frame);
+      frame=requestAnimationFrame(measure);
+    });
+    observer.observe(element);measure();
+    return ()=>{observer.disconnect();cancelAnimationFrame(frame);root.style.removeProperty('--pr-content-height');};
   },[]);
   const close=()=>{
     workspace.current?.closest('.pw-workspace')?.scrollTo({top:0,behavior:'instant'});
@@ -216,7 +229,7 @@ export default function RecoveryOptions({controller:c,demo=true}:{controller:Rec
       (preferred??opener.current)?.focus({preventScroll:true});
     });
   };
-  const title=generating?'Generating recovery options…':c.error?'Planning is temporarily unavailable':
+  const title=generating?(demo?'Generating recovery options…':'Preparing recovery candidate…'):c.error?'Planning is temporarily unavailable':
     candidates.length===0?'0 candidate plans returned':`${candidates.length} recovery candidate${candidates.length===1?'':'s'} found`;
   return <section ref={workspace} className="pr-workspace" data-review-open={c.review} aria-label="Recovery Options Workspace" data-ui-state={c.uiState} aria-hidden={!ready} inert={!ready}
     onKeyDown={event=>{if(event.key==='Escape'&&c.detailId&&!(event.target as HTMLElement).closest('dialog')){event.preventDefault();close();}}}>
@@ -224,10 +237,10 @@ export default function RecoveryOptions({controller:c,demo=true}:{controller:Rec
       <PanelSurface main/>
       <div className="pr-main-heading"><p className="pr-eyebrow"><ClipboardList/>RECOVERY OPTIONS</p>
         <h2 ref={heading} id="pr-title" tabIndex={-1}>{title}</h2>
-        <p>{generating?'Analyzing nearby resources, routes, and constraints to find the best way forward.':c.error?'The request could not be completed. Retry planning to continue.':candidates.length?'Compare the trade-offs. Penrose proposes; you decide.':'No feasible recovery plan could be generated under the current constraints. Manual intervention is required.'}</p>
+        <p>{generating?'Analyzing resources, routes, and constraints.':c.error?'The request could not be completed. Retry planning to continue.':candidates.length?(demo?'Compare the trade-offs. Penrose proposes; you decide.':'Review the validated Candidate. The dispatcher decides whether to apply it.'):'No feasible recovery plan could be generated under the current constraints. Manual intervention is required.'}</p>
       </div>
       <BranchVisual controller={c}/>
-      <dl className="pr-main-metrics"><div><dd>{c.result?.affectedOrdersCount??briefingDemo.incident.affectedOrders.length}</dd><dt>Affected orders</dt></div><div><dd>{c.result?.nearbyAvailableResourcesCount??'—'}</dd><dt>Nearby available resources</dt></div><div><dd>{generating?'—':c.error?'—':candidates.length}</dd><dt>Recovery options generated</dt></div></dl>
+      <dl className="pr-main-metrics"><div><dd>{c.result?.affectedOrdersCount??(demo?briefingDemo.incident.affectedOrders.length:'—')}</dd><dt>Affected orders</dt></div><div><dd>{c.result?.nearbyAvailableResourcesCount??'—'}</dd><dt>Nearby available resources</dt></div><div><dd>{generating?'—':c.error?'—':candidates.length}</dd><dt>Recovery candidates</dt></div></dl>
     </section>
     <section className="pr-comparison-panel pr-panel" inert={c.review} aria-hidden={c.review} aria-label="Recovery options comparison">
       <PanelSurface/>
@@ -235,7 +248,7 @@ export default function RecoveryOptions({controller:c,demo=true}:{controller:Rec
         {generating?<div className="pr-generating" role="status"><p className="pr-eyebrow"><GitBranch/>RECOVERY OPTIONS COMPARISON</p><h3>Evaluating recovery paths</h3><p>Checking resource availability, delivery windows and route impact.</p><div className="pr-generation-track"/><small>{demo?'Demo planning · illustrative outcomes':'Waiting for planning results'}</small></div>:
           c.error?<div className="pr-error" role="alert"><TriangleAlert/><h3>Unable to load recovery options</h3><p>{c.error}</p><button className="pr-pill" onClick={()=>c.generate(c.demoCount)}>Retry Planning <RefreshCw/></button></div>:
           c.result&&candidates.length===0?<ManualIntervention data={c.result} controller={c}/>:
-          <><header className="pr-comparison-heading"><p className="pr-eyebrow"><GitBranch/>RECOVERY OPTIONS COMPARISON</p><p>Compare key metrics across all recovery options</p></header>
+          <><header className="pr-comparison-heading"><p className="pr-eyebrow"><GitBranch/>RECOVERY OPTIONS COMPARISON</p><p>{demo?'Compare key metrics across all recovery options':'Inspect the saved Candidate against the Current Plan snapshot'}</p></header>
             <div className="pr-candidate-grid" style={{'--candidate-count':Math.max(1,candidates.length)} as CSSProperties}>
               {candidates.map(candidate=><button key={candidate.id} className="pr-candidate-card" data-candidate-id={candidate.id}
                 data-recommended={candidate.id===c.result?.recommendedCandidateId} data-selected={candidate.id===c.selectedCandidateId}

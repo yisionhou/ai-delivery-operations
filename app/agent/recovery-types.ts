@@ -15,14 +15,15 @@ export type RouteImpact = {
 };
 export type RecoveryCandidate = {
   id: string; label: string; title: string; description: string;
-  reassignedOrdersCount: number; completionImpactMinutes: number; distanceImpactKm: number;
+  reassignedOrdersCount: number; completionImpactMinutes: number|null; distanceImpactKm: number|null;
   successProbability?: number; orderReassignments: OrderReassignment[];
   routeImpact: RouteImpact; recommendationReason: string;
+  explanationSource?: string;
   reviewSnapshot?: CandidateComparison;
 };
 export type RecoveryOptionsData = {
   source: 'demo' | 'live'; incidentId: string; resourceId: string; currentPlanId: string;
-  totalOrdersCount: number; affectedOrdersCount: number; affectedOrderIds: string[]; nearbyAvailableResourcesCount: number;
+  totalOrdersCount: number; affectedOrdersCount: number; affectedOrderIds: string[]; nearbyAvailableResourcesCount: number|null;
   candidates: RecoveryCandidate[]; recommendedCandidateId?: string; blockedReason?: string;
 };
 export type RecoveryRequest = { incidentId: string; demoCandidateCount: number; signal: AbortSignal };

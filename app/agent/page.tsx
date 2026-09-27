@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description: 'From disruption to recovery.',
 };
 
-export default function AgentEntrance() {
-  return <PenroseEntrancePage hero={entranceHeroMedia} />;
+export default async function AgentEntrance({searchParams}:{searchParams:Promise<{source?:string;incident_id?:string}>}) {
+  const query=await searchParams;
+  return <PenroseEntrancePage hero={entranceHeroMedia} demo={query.source==='demo'} incidentId={query.incident_id} />;
 }

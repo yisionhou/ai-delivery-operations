@@ -1,0 +1,8 @@
+.nexus-brand{gap:10px;padding:0 13px}
+.penrose-mark{flex:none;width:34px;height:42px;filter:drop-shadow(0 0 8px rgba(218,184,118,.24))}
+.nexus-brand .penrose-wordmark{flex:1;min-width:0;gap:5px;padding-left:9px;border-left:1px solid rgba(226,200,146,.35);white-space:nowrap}
+.nexus-brand .penrose-wordmark b{font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:400;line-height:1;letter-spacing:.18em;color:#efdfb9}
+.nexus-brand .penrose-wordmark small{font-size:9px;line-height:1.1;letter-spacing:.035em;color:#c7b99d}
+.penrose-team{display:flex;align-items:center;gap:5px;color:#d7c5a2;font-size:8px;line-height:1;letter-spacing:.14em}
+.penrose-team::before,.penrose-team::after{content:"";flex:1;height:1px;background:rgba(226,200,146,.75)}
+@media(max-width:1280px){.nexus-brand{gap:7px;padding:0 10px}.penrose-mark{width:30px}.nexus-brand .penrose-wordmark{padding-left:7px}.nexus-brand .penrose-wordmark b{font-size:13px;letter-spacing:.15em}.nexus-brand .penrose-wordmark small{font-size:8px;letter-spacing:0}}

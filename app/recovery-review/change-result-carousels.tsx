@@ -7,13 +7,13 @@ import type {CandidateComparison} from '../agent/recovery-types';
 /** The moved Incident decks now present local-preview consequences.
  * Snapshot facts remain immutable; no backend APPLIED status is manufactured.
  */
-export default function ChangeResultCarousels({snapshot,onOrder}:{snapshot:CandidateComparison;onOrder:(id:string)=>void}){
+export default function ChangeResultCarousels({snapshot,onOrder,live=false}:{snapshot:CandidateComparison;onOrder:(id:string)=>void;live?:boolean}){
   const c=snapshot.comparison;
   const assignments=[...c.assignmentChanges.filter(o=>o.reassigned),...c.assignmentChanges.filter(o=>!o.reassigned)];
   const tasks=[...c.stopChanges.filter(t=>t.change==='Added'),...c.stopChanges.filter(t=>t.change!=='Added')];
   return <div className="rr-results" aria-label="Post-dispatch change monitor">
     <div className="rr-result-section">
-      <FocusedCardDeck resultEntry title="Order Reassignment Results" description="New reassignment results, with related affected orders in the same recovery window." items={assignments.map(change=>{
+      <FocusedCardDeck resultEntry title={live?'Applied Order Reassignments':'Order Reassignment Results'} description="New reassignment results, with related affected orders in the same recovery window." items={assignments.map(change=>{
         const eta=c.etaChanges.find(item=>item.orderId===change.orderId);
         const context=snapshot.orders.find(item=>item.id===change.orderId);
         return {id:`result-${change.orderId}`,label:change.orderId,content:<article className="if-review-card" data-card-id={change.orderId}>
@@ -33,12 +33,12 @@ export default function ChangeResultCarousels({snapshot,onOrder}:{snapshot:Candi
       })}/>
     </div>
     <div className="rr-result-section">
-      <FocusedCardDeck resultEntry title="Route / Task Impact Results" description="Monitor the changed pickup, delivery and transfer sequence for this candidate." items={tasks.map((change,index)=>({
+      <FocusedCardDeck resultEntry title={live?'Applied Route / Task Changes':'Route / Task Impact Results'} description="Monitor the changed pickup, delivery and transfer sequence for this candidate." items={tasks.map((change,index)=>({
         id:`task-result-${index}`,label:`${change.change} ${change.action} · ${change.vehicle}`,
         content:<article className={`if-review-card ${change.change==='Removed'?'coral':''}`}>
           <div className="if-review-card-top"><span>{change.action==='Handover'?<HandCoins/>:<Route/>}</span><small>TASK RESULT</small></div>
           <span className="if-review-card-kind">{change.action==='Handover'?'ORDER HANDOVER':`${change.action.toUpperCase()} CHANGE`}</span>
-          <h3>{change.action==='Handover'?`Handover ${change.change==='Removed'?'removed from':'to'} ${change.vehicle}`:`${change.change==='Removed'?'Removed from':change.change==='Added'?'Added to':'Reordered for'} ${change.vehicle}`}</h3>
+          <h3>{change.action==='Handover'?`Handover ${change.change==='Removed'?'removed from':'to'} ${change.vehicle}`:`${change.change==='Removed'?'Removed from':change.change==='Added'?'Added to':change.change==='Modified'?'Modified for':'Reordered for'} ${change.vehicle}`}</h3>
           <div className="if-review-card-body"><div className="if-task-hero"><b>{change.orders.length}</b><span>{change.action==='Handover'?'orders to transfer':`${change.action.toLowerCase()} tasks`}</span></div>
             <p className="if-card-lead">{change.location}</p><div className="if-order-pills">{change.orders.map(id=><button key={id} onClick={()=>onOrder(id)}>{id}<ArrowUpRight/></button>)}</div>
             <span className="if-review-chip">{change.change} · {change.action}</span>

@@ -6,6 +6,7 @@ export type AnalyticsSnapshot={
   basePlan:string;candidatePlan:string|null;ratePerKm:number|null;distanceSource:string;
   orders:AnalyticsOrder[];
   officialReassignedCount?:number;
+  assignmentTotals?:{baseAssigned:number;candidateAssigned:number;baseUnassigned:number;candidateUnassigned:number};
   remaining:{baseDistanceMeters:number|null;candidateDistanceMeters:number|null;baseDurationSeconds:number|null;candidateDurationSeconds:number|null;reason:string|null};
 };
 export type AnalyticsRow=AnalyticsOrder&{result:'Reassigned'|'Frozen'|'Handover'|'Unassigned'|'Newly Assigned'|'Unchanged'};
@@ -40,8 +41,8 @@ export function buildAnalytics(snapshot:AnalyticsSnapshot){
   const costReady=distanceReady&&rate!==null&&Number.isFinite(rate)&&rate>=0;
   return {
     snapshot,affected,recovered,reassigned,rows,coverage:coverageRatio(recovered,affected),
-    assigned:{base:hasCandidate?snapshot.orders.filter(order=>order.baseVehicle!==null).length:null,candidate:hasCandidate?snapshot.orders.filter(order=>order.candidateVehicle!==null).length:null},
-    unassigned:{base:hasCandidate?snapshot.orders.filter(order=>order.baseVehicle===null).length:null,candidate:hasCandidate?snapshot.orders.filter(order=>order.candidateVehicle===null).length:null},
+    assigned:{base:hasCandidate?snapshot.assignmentTotals?.baseAssigned??snapshot.orders.filter(order=>order.baseVehicle!==null).length:null,candidate:hasCandidate?snapshot.assignmentTotals?.candidateAssigned??snapshot.orders.filter(order=>order.candidateVehicle!==null).length:null},
+    unassigned:{base:hasCandidate?snapshot.assignmentTotals?.baseUnassigned??snapshot.orders.filter(order=>order.baseVehicle===null).length:null,candidate:hasCandidate?snapshot.assignmentTotals?.candidateUnassigned??snapshot.orders.filter(order=>order.candidateVehicle===null).length:null},
     distance:{base:hasCandidate&&baseDistanceMeters!==null?baseDistanceMeters/1000:null,candidate:hasCandidate&&candidateDistanceMeters!==null?candidateDistanceMeters/1000:null},
     duration:{base:hasCandidate&&baseDurationSeconds!==null?baseDurationSeconds/3600:null,candidate:hasCandidate&&candidateDurationSeconds!==null?candidateDurationSeconds/3600:null},
     distanceChangeKm:distanceReady?(candidateDistanceMeters-baseDistanceMeters)/1000:null,
@@ -50,6 +51,6 @@ export function buildAnalytics(snapshot:AnalyticsSnapshot){
     baseCost:costReady?money(baseDistanceMeters/1000*rate):null,
     candidateCost:costReady?money(candidateDistanceMeters/1000*rate):null,
     costChange:costReady?money((candidateDistanceMeters-baseDistanceMeters)/1000*rate):null,
-    costReason:rate===null?'Rate not configured':distanceReady?null:reason??'Comparable remaining distance is unavailable.',
+    costReason:rate===null?(distanceReady?'Mileage rate not configured':'Comparable remaining distance and mileage rate are unavailable.'):distanceReady?null:reason??'Comparable remaining distance is unavailable.',
   };
 }

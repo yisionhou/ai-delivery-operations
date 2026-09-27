@@ -246,7 +246,7 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
       <section className="bottom-grid"><VehiclePanel source={source} snapshot={snapshot} businessDate={businessDate}/><IncidentPanel source={source} snapshot={snapshot} businessDate={businessDate} onIncident={()=>stageIncident()}/><AgentPanel source={source} snapshot={snapshot} state={state}/></section>
       <div className="sr-only" aria-live="polite">{state}. {selectedRegion ?? "Singapore overview"}.</div>
     </div>
-    {visitedOperations&&<div style={{display:activePage==='operations' ? 'contents' : 'none'}}><OperationsPage key={operationsRevision} active={activePage==='operations'&&documentVisible} source={source} businessDate={businessDate} onSourceChange={setSource} onBusinessDateChange={setBusinessDate} onOpenIncident={openIncident} recoveryRevision={recoveryRevision}/></div>}
+    {visitedOperations&&<div style={{display:activePage==='operations' ? 'contents' : 'none'}}><OperationsPage key={operationsRevision} active={activePage==='operations'&&documentVisible} source={source} businessDate={businessDate} onBusinessDateChange={setBusinessDate} onOpenIncident={openIncident} recoveryRevision={recoveryRevision}/></div>}
     {visitedIncidents&&<div style={{display:activePage==='incidents' ? 'contents' : 'none'}}><IncidentFocusPage active={activePage==='incidents'} data={incidentWorkspaces[selectedIncidentId]}/></div>}
   </main>;
 }
