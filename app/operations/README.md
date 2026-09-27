@@ -1,15 +1,18 @@
 # Operations frontend integration
 
-The Operations navigation item contains Planning and Live Execution in one page. It uses the shared NEXUS shell, the Incidents night-map style, and the same black theme tokens. Planning owns plan creation and cross-route review. Live Execution gives a fleet-wide summary, route progress, and attention signals; vehicle and order record details belong in their dedicated pages.
+Operations has one page with Planning and Live Execution. It keeps the shared NEXUS shell and the Incidents night map.
 
-## Data status
+## Data modes
 
-`operations-data.ts` is an explicit **frontend demo adapter**. Its orders, routes, stops, risk flags, alerts, plan ID and vehicle motion are fixtures. The map uses real Singapore map tiles, but no operational data on this page is currently fetched from the backend. `operations-road-routes.json` contains static road-following geometry generated from the ordered demo stops with OSRM / OpenStreetMap; its snapped waypoints are also used for the stop markers. Displayed route distance comes from that geometry, while planned duration remains a fixture. Vehicle markers travel along the stored road geometry for display only; they do not calculate ETA, risk or incidents. No routing service is called at runtime.
+- **Backend** is the default. It reads `GET /api/operations/workspace?business_date=YYYY-MM-DD` through the same-origin bridge. The date selector controls the business date. The response supplies daily resource readiness, the latest reviewable draft or Current Plan, plan routes/stops, unassigned orders, persisted risk/active alerts, open incidents, and measured on-time rate. The page never silently substitutes demo data if this request fails.
+- **Demo** remains an explicit frontend fixture in `operations-data.ts`, dated 2026-09-26. Confirming its plan affects only local state. The static `operations-road-routes.json` contains road-following demonstration lines.
 
-The demo flow is Ready → Solving → Plan Ready → Confirmed Current. Confirming a demo plan updates only frontend state. The trusted demo incident ID `INC-007` can open the existing Incident workspace through the application shell. When its mock approval succeeds, the shell remounts Operations and clears the previous plan, because the frontend fixture does not contain the approved replacement plan's routes and stops. This prevents displaying old route data under a new plan identity.
+## Planning and execution
 
-## Backend integration boundary
+Backend Generate calls `POST /api/planning/drafts` and reloads the workspace. Repeating Generate cancels the previous draft. Confirm calls `POST /api/planning/drafts/{id}/confirm`, then reloads the Current Plan. The older `POST /api/planning/generate` still creates a Current Plan immediately and is never used by this page.
 
-The backend currently exposes `POST /api/planning/generate`, `GET /api/delivery-plans/current`, `GET /api/delivery-plans/{plan_id}/routes`, `GET /api/operations/dashboard`, `GET /api/operations/orders`, `GET /api/operations/vehicles`, `GET /api/operations/routes`, and `GET /api/operations/simulated-positions`. The current generate endpoint creates a Current Plan immediately; it does **not** implement the design's draft review and confirm transaction. The frontend must not call it from the demo Confirm button as if those semantics were equivalent.
+For Current Plans, the page refreshes the workspace every 15 seconds and polls `GET /api/operations/simulated-positions` every second. Vehicle markers use the returned coordinates. These are simulated positions, not GPS. ETA and risk do not derive from the markers. The Incidents link opens persisted incident context; recovery actions on that context page remain separate.
 
-Before switching this page to backend data, implement or agree on the draft/confirm plan contract, route stop and location/geometry data for the map and timeline, alert/incident linkage, and a consistent snapshot refresh when Current Plan changes. Replace `demoOperationsAdapter` with a real adapter that maps those responses into `OperationsSnapshot`; keep the view components independent of transport details.
+Routes with stored GeoJSON use it. Where route geometry is absent, the backend sends straight stop connectors and marks `geometry_source=STOP_CONNECTORS`; the map labels this limitation. Such connectors are not road routing. Planned route distance and duration come from the solver, while on-time rate is shown only when completed deliveries have been measured. Daily order pool and Current Plan membership are deliberately separate counts.
+
+Stored backend lines have not been verified against streets. Simulated coordinates are interpolated between stops and may not lie exactly on a displayed line.

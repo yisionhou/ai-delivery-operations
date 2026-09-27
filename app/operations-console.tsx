@@ -130,6 +130,7 @@ function AgentPanel({ state,source,snapshot }: { state: AppState;source:'api'|'d
 }
 
 export default function OperationsConsole({initialPage='overview'}:{initialPage?:'overview'|'operations'}) {
+  const router=useRouter();
   const [source,setSource]=useState<'api'|'demo'>('api');
   const [businessDate,setBusinessDate]=useState('');
   const [snapshot,setSnapshot]=useState<OverviewSnapshot|null>(null);
@@ -228,7 +229,7 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
       <section className="bottom-grid"><VehiclePanel source={source} snapshot={snapshot} businessDate={businessDate}/><IncidentPanel source={source} snapshot={snapshot} onIncident={()=>stageIncident()}/><AgentPanel source={source} snapshot={snapshot} state={state}/></section>
       <div className="sr-only" aria-live="polite">{state}. {selectedRegion ?? "Singapore overview"}.</div>
     </div>
-    {visitedOperations&&<div style={{display:activePage==='operations' ? 'contents' : 'none'}}><OperationsPage key={operationsRevision} active={activePage==='operations'&&documentVisible} onOpenIncident={stageIncident} recoveryRevision={recoveryRevision}/></div>}
+    {visitedOperations&&<div style={{display:activePage==='operations' ? 'contents' : 'none'}}><OperationsPage key={operationsRevision} active={activePage==='operations'&&documentVisible} source={source} businessDate={businessDate} onSourceChange={setSource} onBusinessDateChange={setBusinessDate} onOpenIncident={id=>{if(source==='api')router.push(`/incidents?source=api&business_date=${encodeURIComponent(businessDate)}&incident_id=${encodeURIComponent(id)}`);else stageIncident(id);}} recoveryRevision={recoveryRevision}/></div>}
     {visitedIncidents&&<div style={{display:activePage==='incidents' ? 'contents' : 'none'}}><IncidentFocusPage active={activePage==='incidents'} data={incidentWorkspaces[selectedIncidentId]} onRecoveryApplied={()=>setRecoveryRevision(value=>value+1)}/></div>}
   </main>;
 }

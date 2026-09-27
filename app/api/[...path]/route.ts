@@ -1,6 +1,6 @@
-// Same-origin read-only bridge. No credentials or backend URLs enter the UI.
-// Backend must be running separately; no automatic mock fallback or mutations.
-const allowed=/^(vehicles(?:\/[a-zA-Z0-9-]+)?|operations\/(?:vehicles|orders|dashboard|routes|simulated-positions)|vehicle-routes\/[a-zA-Z0-9-]+\/stops|incidents(?:\/[a-zA-Z0-9-]+)?|orders(?:\/[a-zA-Z0-9-]+)?)$/;
+// Same-origin bridge. Only explicitly registered backend resources are exposed.
+const allowed=/^(vehicles(?:\/[a-zA-Z0-9-]+)?|operations\/(?:vehicles|orders|dashboard|routes|workspace|simulated-positions)|vehicle-routes\/[a-zA-Z0-9-]+\/stops|incidents(?:\/[a-zA-Z0-9-]+)?|orders(?:\/[a-zA-Z0-9-]+)?|merchants\/[a-zA-Z0-9-]+)$/;
+const draftPath=/^planning\/drafts(?:\/[0-9a-fA-F-]{36}\/confirm)?$/;
 export async function GET(request:Request,{params}:{params:Promise<{path:string[]}>}){
   const {path}=await params,resource=path.join('/');
   if(!allowed.test(resource))return Response.json({success:false,code:'NOT_FOUND',message:'This read endpoint is not registered.',data:null,request_id:'frontend'},{status:404});
@@ -12,5 +12,22 @@ export async function GET(request:Request,{params}:{params:Promise<{path:string[
     return new Response(response.body,{status:response.status,headers:{'Content-Type':response.headers.get('Content-Type')??'application/json','Cache-Control':'no-store'}});
   }catch{
     return Response.json({success:false,code:'BACKEND_UNAVAILABLE',message:'PenroseRoute is not reachable. Start the configured backend, then retry. Demo data is available separately.',data:null,request_id:'frontend'},{status:503});
+  }
+}
+
+export async function POST(request:Request,{params}:{params:Promise<{path:string[]}>}){
+  const {path}=await params,resource=path.join('/');
+  if(!draftPath.test(resource))return Response.json({success:false,code:'NOT_FOUND',message:'This write endpoint is not registered.',data:null,request_id:'frontend'},{status:404});
+  const body=await request.json().catch(()=>null);
+  if(!body||typeof body!=='object'||Array.isArray(body))return Response.json({success:false,code:'INVALID_REQUEST',message:'Expected a JSON object.',data:null,request_id:'frontend'},{status:400});
+  const command=body as Record<string,unknown>;
+  if(resource==='planning/drafts'&&(typeof command.business_date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(command.business_date)))return Response.json({success:false,code:'INVALID_REQUEST',message:'A business date is required.',data:null,request_id:'frontend'},{status:400});
+  const base=process.env.PENROSE_API_URL??'http://127.0.0.1:8000';
+  try{
+    const response=await fetch(new URL('/api/'+resource,base),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(30000),cache:'no-store',redirect:'manual'});
+    if(response.status>=300&&response.status<400)return Response.json({success:false,code:'BACKEND_REDIRECT',message:'PenroseRoute returned an unexpected redirect.',data:null,request_id:'frontend'},{status:502});
+    return new Response(response.body,{status:response.status,headers:{'Content-Type':response.headers.get('Content-Type')??'application/json','Cache-Control':'no-store'}});
+  }catch{
+    return Response.json({success:false,code:'BACKEND_UNAVAILABLE',message:'PenroseRoute is not reachable. Start the configured backend, then retry.',data:null,request_id:'frontend'},{status:503});
   }
 }

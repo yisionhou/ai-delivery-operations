@@ -68,22 +68,26 @@ export default function OperationsMap({active,snapshot,mode,selectedRoute,onSele
       snapshot.routes.forEach((route,index)=>{
         route.stops.forEach(stop=>staticMarkers.current.push(add(stop.point,`ops-marker-${stop.kind.toLowerCase()} ${stop.risk==='AT_RISK'&&mode==='live'?'risk':''}`,`${stop.kind} ${stop.order} · ${stop.place}`,()=>handlers.current.onSelectRoute(route.id))));
         if(mode==='live'){
-          // Demo animation is intentionally visual only; ETA/risk come from the fixture.
           const phase=route.status==='UNAVAILABLE'?.63:((Math.floor((Date.now()-startedAt.current)/1000)/120+index*.19)%1);
-          vehicleMarkers.current.set(route.id,add(pointAlongRoute(route.path,phase),`ops-marker-vehicle ${route.status==='UNAVAILABLE'?'incident':route.status==='AT_RISK'?'risk':''}`,`${route.vehicle} · simulated position`,()=>handlers.current.onSelectRoute(route.id)));
+          const position=snapshot.source==='API'?route.path[0]:pointAlongRoute(route.path,phase);
+          if(position)vehicleMarkers.current.set(route.id,add(position,`ops-marker-vehicle ${route.status==='UNAVAILABLE'?'incident':route.status==='AT_RISK'?'risk':''}`,`${route.vehicle} · simulated position`,()=>handlers.current.onSelectRoute(route.id)));
         }
       });
-      if(mode==='live'){
+      if(mode==='live'&&snapshot.source==='DEMO'){
         const incident=snapshot.alerts.find(alert=>alert.incidentId);
         const route=snapshot.routes.find(item=>item.vehicle===incident?.vehicle);
         if(incident?.incidentId&&route)staticMarkers.current.push(add(pointAlongRoute(route.path,.63),'ops-marker-incident',`${incident.title} · ${incident.incidentId}`,()=>handlers.current.onOpenIncident(incident.incidentId!)));
       }
-  },[ready,snapshot,mode]);
+  },[ready,snapshot.routes,snapshot.alerts,snapshot.source,snapshot.plan,mode]);
+  useEffect(()=>{
+    if(snapshot.source!=='API'||mode!=='live')return;
+    for(const [id,point] of Object.entries(snapshot.positions??{}))vehicleMarkers.current.get(id)?.setLngLat(point);
+  },[ready,snapshot.positions,snapshot.source,mode]);
   useEffect(()=>{
     vehicleMarkers.current.forEach((marker,id)=>marker.getElement().classList.toggle('selected',id===selectedRoute));
   },[ready,snapshot,mode,selectedRoute]);
   useEffect(()=>{
-    if(!active||!ready||mode!=='live')return;
+    if(!active||!ready||mode!=='live'||snapshot.source==='API')return;
     const update=()=>{
       const tick=Math.floor((Date.now()-startedAt.current)/1000);
       snapshot.routes.forEach((route,index)=>{
@@ -94,11 +98,11 @@ export default function OperationsMap({active,snapshot,mode,selectedRoute,onSele
     update();
     const timer=window.setInterval(update,1000);
     return()=>window.clearInterval(timer);
-  },[active,ready,mode,snapshot.routes]);
+  },[active,ready,mode,snapshot.routes,snapshot.source]);
   return <div className="ops-map-wrap">
     <div ref={root} className="ops-map-canvas" aria-label="Interactive Singapore operations map"/>
     <div className="ops-map-shade"/>
-    <div className="ops-map-heading"><span>SINGAPORE</span><small>{mode==='planning'?'PLANNING NETWORK':'SIMULATED LIVE VIEW'}</small></div>
+    <div className="ops-map-heading"><span>SINGAPORE</span><small>{snapshot.source==='API'&&snapshot.routes.length?(snapshot.routes.some(route=>route.geometrySource==='STOP_CONNECTORS')?'STOP CONNECTORS · NOT ROAD ROUTES':'PLAN LINE · ROAD ALIGNMENT UNVERIFIED'):mode==='planning'?'PLANNING NETWORK':'SIMULATED LIVE VIEW'}</small></div>
     <div className="ops-map-controls"><button aria-label="Recenter map" onClick={()=>mapRef.current?.flyTo({center,zoom:10.9})}><Crosshair/></button><button aria-label="Zoom in map" onClick={()=>mapRef.current?.zoomIn()}><Plus/></button><button aria-label="Zoom out map" onClick={()=>mapRef.current?.zoomOut()}><Minus/></button></div>
     <div className="ops-map-legend"><span><i className="pickup"/>Pickup {mode==='live'?'route':'point'}</span><span><i className="delivery"/>Delivery {mode==='live'?'route':'point'}</span>{mode==='live'&&<><span><i className="risk"/>At risk</span><span><i className="incident"/>Incident</span></>}</div>
     {(!ready||error)&&<div className="ops-map-message" role="status">{error??'Loading Singapore · NEXUS night map'}{error&&<button onClick={()=>{setError(null);(mapRef.current?.getSource('nexus-base') as VectorTileSource|undefined)?.setUrl(OPERATIONAL_TILEJSON);}}>Retry basemap</button>}</div>}
