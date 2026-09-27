@@ -11,6 +11,7 @@ import SingaporeScene, { RegionCollection, RegionKey } from "./singapore-scene";
 import type { CameraCommand } from './inspection-camera';
 import IncidentFocusPage from './incidents/incident-focus-page';
 import {incident,incidentWorkspaces} from './incidents/incident-mock';
+import {incidentPageHref} from './incidents/incident-navigation';
 import Sidebar from "./nexus-sidebar";
 import OperationsPage from './operations/operations-page';
 import {loadOverview,loadPositions,type OverviewSnapshot} from './overview/overview-api';
@@ -104,11 +105,11 @@ function VehiclePanel({source,snapshot,businessDate}:{source:'api'|'demo';snapsh
   </section>;
 }
 
-function IncidentPanel({ onIncident,source,snapshot }: { onIncident: () => void;source:'api'|'demo';snapshot:OverviewSnapshot|null }) {
+export function IncidentPanel({ onIncident,source,snapshot,businessDate }: { onIncident: () => void;source:'api'|'demo';snapshot:OverviewSnapshot|null;businessDate:string }) {
   const backend=source==='api',incidents=snapshot?.incidents?.filter(item=>item.status!=='RESOLVED').sort((a,b)=>b.detected_at.localeCompare(a.detected_at)).slice(0,3)??[];
   return <section className="bottom-panel incident-panel">
-    <header><h2>Incidents &amp; Alerts <em>{backend?snapshot?.dashboard.open_incidents??'—':Object.keys(incidentWorkspaces).length}</em></h2><button disabled={backend} title={backend?'Backend incident workspace is not connected':undefined} onClick={onIncident}>View all <ChevronRight/></button></header>
-    {backend?incidents.length?incidents.map(item=><div className="incident-row" key={item.id}><span className="incident-icon red"><AlertTriangle/></span><span><b>{item.incident_type.replaceAll('_',' ')}</b><small>{item.incident_code} · {item.status.replaceAll('_',' ')}</small></span><time>{new Intl.DateTimeFormat('en-SG',{timeZone:'Asia/Singapore',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(item.detected_at))}</time></div>):<p className="overview-unavailable">{snapshot?.incidents?'No open incidents':'Incident list unavailable'}</p>:<>
+    <header><h2>Incidents &amp; Alerts <em>{backend?snapshot?.dashboard.open_incidents??'—':Object.keys(incidentWorkspaces).length}</em></h2>{backend?<a className="incident-view-all" href={incidentPageHref(businessDate)}>View all <ChevronRight/></a>:<button onClick={onIncident}>View all <ChevronRight/></button>}</header>
+    {backend?incidents.length?incidents.map(item=><a className="incident-row" href={incidentPageHref(businessDate,item.id)} key={item.id}><span className="incident-icon red"><AlertTriangle/></span><span><b>{item.incident_type.replaceAll('_',' ')}</b><small>{item.incident_code} · {item.status.replaceAll('_',' ')}</small></span><time>{new Intl.DateTimeFormat('en-SG',{timeZone:'Asia/Singapore',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(item.detected_at))}</time></a>):<p className="overview-unavailable">{snapshot?.incidents?'No open incidents':'Incident list unavailable'}</p>:<>
     <button className="incident-row" onClick={onIncident}><span className="incident-icon red"><AlertTriangle/></span><span><b>{incident.typeLabel}</b><small>{incident.subject.id} · {incident.area}</small></span><time>{incident.detectedAt}</time></button>
     <div className="incident-row"><span className="incident-icon amber"><AlertTriangle/></span><span><b>Traffic risk · AT_RISK</b><small>PIE (Tuas → Jurong) · alert only</small></span><time>24 min ago</time></div>
     <div className="incident-row"><span className="incident-icon amber"><CloudRain/></span><span><b>Weather risk · AT_RISK</b><small>Heavy rain expected · alert only</small></span><time>1 hour ago</time></div>
@@ -123,7 +124,7 @@ function AgentPanel({ state,source,snapshot }: { state: AppState;source:'api'|'d
     {source==='api'?<div className="agent-main"><div className="agent-copy"><div className="agent-status"><span>»</span><p><b>{snapshot?`${snapshot.dashboard.pending_recovery_reviews} pending recovery reviews`:'Backend data unavailable'}</b><small>Current plan · {snapshot?.dashboard.current_plan.plan_code??'—'}</small></p></div><div className="agent-step">{snapshot?`${snapshot.dashboard.open_incidents} open incidents`:'No agent workflow data loaded'}</div><div className="agent-step">Workflow steps are not supplied by this endpoint.</div></div><div className="agent-sculpture"><i/><i/><i/><i/></div></div>:<>
     <div className="agent-main"><div className="agent-copy">
       <div className="agent-status"><span>»</span><p><b>{recovery ? "Recovery staged" : "Recovery review ready"}</b><small>{incident.id} · {incident.affectedOrders} affected orders</small></p></div>
-      {["Impact assessed", "Single candidate generated", "Base comparison ready", "Review in Incidents"].map((label, index) => <div className={`agent-step ${index < 2 ? "done" : ""}`} key={label}>{index < 2 ? <Check/> : <span/>}{label}</div>)}
+      {["Impact assessed", "Single candidate generated", "Base comparison ready", "Candidate review pending"].map((label, index) => <div className={`agent-step ${index < 2 ? "done" : ""}`} key={label}>{index < 2 ? <Check/> : <span/>}{label}</div>)}
     </div><div className="agent-sculpture"><i/><i/><i/><i/></div></div>
     </>}
   </section>;
@@ -145,7 +146,7 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
   const [visitedOperations,setVisitedOperations]=useState(initialPage==='operations');
   const [visitedIncidents,setVisitedIncidents]=useState(false);
   const [documentVisible,setDocumentVisible]=useState(true);
-  const [recoveryRevision,setRecoveryRevision]=useState(0);
+  const recoveryRevision=0;
   const [operationsRevision,setOperationsRevision]=useState(0);
   const [selectedIncidentId,setSelectedIncidentId]=useState(incident.id);
   const [selectedRegion, setSelectedRegion] = useState<RegionKey | null>(null);
@@ -204,6 +205,7 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
   const selectRegion = (key:RegionKey) => { setSelectedRegion(key); setState("REGION_FOCUS"); setHoveredRegion(null); };
   const reset = () => { setSelectedRegion(null); setState("SINGAPORE_OVERVIEW"); setHoveredRegion(null); };
   const stageIncident = (id=incident.id) => {if(!incidentWorkspaces[id])return;setSelectedIncidentId(id);setVisitedIncidents(true);setActivePage('incidents');};
+  const openIncident=(id?:string)=>{if(source==='api')router.push(incidentPageHref(businessDate,id));else stageIncident(id);};
   const openOperations=()=>{setOperationsRevision(recoveryRevision);setVisitedOperations(true);setActivePage('operations');};
   const metrics=snapshot?overviewMetrics(snapshot):null;
   const trends=snapshot?.dashboard.trends,compareDate=trends?.comparison_business_date;
@@ -215,7 +217,7 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
   ];
 
   return <main className={`nexus-app page-${activePage}`}>
-    <Sidebar onIncident={()=>stageIncident()} onOverview={() => setActivePage('overview')} onOperations={openOperations} activePage={activePage}/>
+    <Sidebar onIncident={()=>openIncident()} onOverview={() => setActivePage('overview')} onOperations={openOperations} activePage={activePage} incidentCount={source==='api'?snapshot?.dashboard.open_incidents:Object.keys(incidentWorkspaces).length}/>
     <div className="nexus-main" style={activePage!=='overview' ? {display:'none'} : undefined} aria-hidden={activePage!=='overview' || undefined}>
       <header className="nexus-header"><div><h1>Good morning, Alex.</h1><p>{source==='api'?'Current-plan operational snapshot from PenroseRoute.':"Everything in motion. We'll help you keep it that way."}</p></div>
         <div className="header-tools overview-controls"><div className="overview-source"><button aria-pressed={source==='api'} onClick={()=>{setSnapshot(null);setBackendError(null);setSource('api');}}>Backend</button><button aria-pressed={source==='demo'} onClick={()=>setSource('demo')}>Demo</button></div><input aria-label="Business Date" type="date" value={businessDate} onChange={event=>{if(event.target.value){setSnapshot(null);setBackendError(null);setBusinessDate(event.target.value);}}}/><button aria-label="Refresh Overview" disabled={backendBusy||source==='demo'} onClick={()=>setOverviewRevision(value=>value+1)}><RefreshCw/></button><span className="user-avatar"><UserRound/></span></div>
@@ -226,11 +228,11 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
         {geo ? <SingaporeScene active={activePage==='overview'&&documentVisible} geo={geo} selectedRegion={selectedRegion} onSelectRegion={selectRegion} onHoverRegion={setHoveredRegion} command={command} onMotionChange={setCameraBusy} onIncident={stageIncident} source={source} positions={source==='api'?snapshot?.positions??null:null}/> : <div className="map-loading"><Box/><span>Building Singapore model…</span></div>}
         <div className="map-vignette"/><MapOverlay state={state} selectedRegion={selectedRegion} hoveredRegion={hoveredRegion} onReset={reset} onViewCommand={viewCommand} cameraBusy={cameraBusy} source={source} snapshot={snapshot}/>
       </section>
-      <section className="bottom-grid"><VehiclePanel source={source} snapshot={snapshot} businessDate={businessDate}/><IncidentPanel source={source} snapshot={snapshot} onIncident={()=>stageIncident()}/><AgentPanel source={source} snapshot={snapshot} state={state}/></section>
+      <section className="bottom-grid"><VehiclePanel source={source} snapshot={snapshot} businessDate={businessDate}/><IncidentPanel source={source} snapshot={snapshot} businessDate={businessDate} onIncident={()=>stageIncident()}/><AgentPanel source={source} snapshot={snapshot} state={state}/></section>
       <div className="sr-only" aria-live="polite">{state}. {selectedRegion ?? "Singapore overview"}.</div>
     </div>
-    {visitedOperations&&<div style={{display:activePage==='operations' ? 'contents' : 'none'}}><OperationsPage key={operationsRevision} active={activePage==='operations'&&documentVisible} source={source} businessDate={businessDate} onSourceChange={setSource} onBusinessDateChange={setBusinessDate} onOpenIncident={id=>{if(source==='api')router.push(`/incidents?source=api&business_date=${encodeURIComponent(businessDate)}&incident_id=${encodeURIComponent(id)}`);else stageIncident(id);}} recoveryRevision={recoveryRevision}/></div>}
-    {visitedIncidents&&<div style={{display:activePage==='incidents' ? 'contents' : 'none'}}><IncidentFocusPage active={activePage==='incidents'} data={incidentWorkspaces[selectedIncidentId]} onRecoveryApplied={()=>setRecoveryRevision(value=>value+1)}/></div>}
+    {visitedOperations&&<div style={{display:activePage==='operations' ? 'contents' : 'none'}}><OperationsPage key={operationsRevision} active={activePage==='operations'&&documentVisible} source={source} businessDate={businessDate} onSourceChange={setSource} onBusinessDateChange={setBusinessDate} onOpenIncident={openIncident} recoveryRevision={recoveryRevision}/></div>}
+    {visitedIncidents&&<div style={{display:activePage==='incidents' ? 'contents' : 'none'}}><IncidentFocusPage active={activePage==='incidents'} data={incidentWorkspaces[selectedIncidentId]}/></div>}
   </main>;
 }
 

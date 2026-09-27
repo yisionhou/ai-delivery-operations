@@ -5,6 +5,7 @@ import type {Map as MapLibreMap,Marker,GeoJSONSource,VectorTileSource} from 'map
 import type {FeatureCollection,Feature} from 'geojson';
 import type {OperationsSnapshot,Route,Coordinate} from './operations-data';
 import {pointAlongRoute} from './route-position';
+import {roadAlignmentLabel} from './operations-route-label';
 import {createOperationalMapStyle,OPERATIONAL_TILEJSON,roadAccentData} from '../incidents/operational-map-style';
 import {singaporeBounds} from './singapore-basemap';
 
@@ -102,7 +103,7 @@ export default function OperationsMap({active,snapshot,mode,selectedRoute,onSele
   return <div className="ops-map-wrap">
     <div ref={root} className="ops-map-canvas" aria-label="Interactive Singapore operations map"/>
     <div className="ops-map-shade"/>
-    <div className="ops-map-heading"><span>SINGAPORE</span><small>{snapshot.source==='API'&&snapshot.routes.length?(snapshot.routes.some(route=>route.geometrySource==='STOP_CONNECTORS')?'STOP CONNECTORS · NOT ROAD ROUTES':'PLAN LINE · ROAD ALIGNMENT UNVERIFIED'):mode==='planning'?'PLANNING NETWORK':'SIMULATED LIVE VIEW'}</small></div>
+    <div className="ops-map-heading"><span>SINGAPORE</span><small>{snapshot.source==='API'&&snapshot.routes.length?roadAlignmentLabel(snapshot.routes,selectedRoute):mode==='planning'?'PLANNING NETWORK':'SIMULATED LIVE VIEW'}</small></div>
     <div className="ops-map-controls"><button aria-label="Recenter map" onClick={()=>mapRef.current?.flyTo({center,zoom:10.9})}><Crosshair/></button><button aria-label="Zoom in map" onClick={()=>mapRef.current?.zoomIn()}><Plus/></button><button aria-label="Zoom out map" onClick={()=>mapRef.current?.zoomOut()}><Minus/></button></div>
     <div className="ops-map-legend"><span><i className="pickup"/>Pickup {mode==='live'?'route':'point'}</span><span><i className="delivery"/>Delivery {mode==='live'?'route':'point'}</span>{mode==='live'&&<><span><i className="risk"/>At risk</span><span><i className="incident"/>Incident</span></>}</div>
     {(!ready||error)&&<div className="ops-map-message" role="status">{error??'Loading Singapore · NEXUS night map'}{error&&<button onClick={()=>{setError(null);(mapRef.current?.getSource('nexus-base') as VectorTileSource|undefined)?.setUrl(OPERATIONAL_TILEJSON);}}>Retry basemap</button>}</div>}

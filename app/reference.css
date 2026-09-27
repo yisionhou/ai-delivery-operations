@@ -35,6 +35,9 @@
 .page-overview .overview-controls>button:disabled{opacity:.4;cursor:default}
 .page-overview .overview-data-status{position:absolute;z-index:8;top:199px;left:40px;max-width:60%;padding:7px 11px;border:1px solid rgba(255,115,91,.28);border-radius:5px;background:rgba(30,15,14,.92);color:#f2b2a4;font-size:11px;pointer-events:none}
 .page-overview .overview-unavailable{margin:20px 4px;color:#aaa9a3;font-size:11px}
+.incident-panel header .incident-view-all{display:flex;align-items:center;gap:3px;color:#aaa9a5;font-size:9px;text-decoration:none}
+.incident-panel header .incident-view-all svg{width:12px}
+.incident-panel a.incident-row{cursor:pointer;text-decoration:none}
 @media(max-width:1280px){
   .page-overview .incident-row b,.page-overview .agent-status b,.page-overview .agent-step{font-size:10px}
   .page-overview .incident-row small,.page-overview .incident-row time,.page-overview .agent-status small{font-size:8px}

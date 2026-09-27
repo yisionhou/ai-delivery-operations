@@ -1,5 +1,5 @@
 // Same-origin bridge. Only explicitly registered backend resources are exposed.
-const allowed=/^(vehicles(?:\/[a-zA-Z0-9-]+)?|operations\/(?:vehicles|orders|dashboard|routes|workspace|simulated-positions)|vehicle-routes\/[a-zA-Z0-9-]+\/stops|incidents(?:\/[a-zA-Z0-9-]+)?|orders(?:\/[a-zA-Z0-9-]+)?|merchants\/[a-zA-Z0-9-]+)$/;
+const allowed=/^(vehicles(?:\/[a-zA-Z0-9-]+)?|operations\/(?:vehicles|orders|dashboard|routes|workspace|simulated-positions)|vehicle-routes\/[a-zA-Z0-9-]+(?:\/stops)?|incidents(?:\/[a-zA-Z0-9-]+(?:\/(?:affected-orders|recovery-plans))?)?|recovery-plans\/[a-zA-Z0-9-]+(?:\/comparison)?|delivery-plans\/[a-zA-Z0-9-]+(?:\/(?:orders|routes))?|orders(?:\/[a-zA-Z0-9-]+)?|merchants\/[a-zA-Z0-9-]+)$/;
 const draftPath=/^planning\/drafts(?:\/[0-9a-fA-F-]{36}\/confirm)?$/;
 export async function GET(request:Request,{params}:{params:Promise<{path:string[]}>}){
   const {path}=await params,resource=path.join('/');
