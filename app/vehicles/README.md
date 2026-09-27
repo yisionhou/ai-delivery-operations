@@ -5,7 +5,7 @@ Implemented in the existing NEXUS frontend. No second application or backend mut
 ## Run and routes
 
 - `npm run dev` (existing project command, port 5173).
-- `/vehicles`: backend mode, defaults to the current Singapore business date.
+- `/vehicles`: backend mode, defaults to the current Singapore business date. The main sidebar opens this mode.
 - `/vehicles?source=demo`: local demo for today's Singapore business date; open V01 to watch a roughly two-minute countdown.
 - `/vehicles?source=demo&business_date=2026-09-26`: historical snapshot, whose planned window has ended.
 - `/vehicles?selected_vehicle=:vehicleId`: opens the right-side inspector while keeping the fleet board visible.
@@ -13,7 +13,7 @@ Implemented in the existing NEXUS frontend. No second application or backend mut
 - `/incidents?incident_id=...&vehicle_id=...&business_date=...`: Incident handoff.
 - `/orders?selected_order=...&vehicle_id=...&business_date=...`: selected Order handoff.
 
-`source`, `business_date`, `filter` and `page` travel with links and Back actions. Selecting or closing a vehicle keeps the board scroll position. The original Overview/Operations shell remains in use; only its sidebar was extracted to enable shared navigation. The existing demo shell initially opens the explicit demo. The Vehicles shell preserves the currently chosen data source.
+`source`, `business_date`, `filter` and `page` travel with links and Back actions. Selecting or closing a vehicle keeps the board scroll position. The original Overview/Operations shell remains in use; only its sidebar was extracted to enable shared navigation. The main sidebar opens Backend mode; the Vehicles shell preserves the currently chosen data source.
 
 Backend reads use the same-origin, read-only `app/api/[...path]/route.ts` bridge. Set **server-side** `PENROSE_API_URL` to the backend origin (default `http://127.0.0.1:8000`) and restart the frontend. Do not include `/api` in that origin. The bridge allows only the verified read routes used by this module, forwards backend envelopes/statuses, and returns a clear 503 when the backend is unreachable. It does not start, seed, mutate, or configure the backend database.
 
@@ -67,7 +67,7 @@ The demo uses V01–V04 route/driver/stop facts copied from the existing `operat
 
 The existing Incident review remains a demo and is used only for demo IDs/source. API mode opens the real persisted Incident's read context; it cannot use the mock recovery approval UI. Orders had no implemented module in the baseline; the new route is a narrow selected-context handoff, not a new full Orders workspace.
 
-At delivery, port 8000 was not serving PenroseRoute. Live database end-to-end verification therefore remains pending. No backend files were modified. A running configured API/PostgreSQL is required for live fleet records. This does not block demo inspection or verified-contract UI tests.
+Backend mode was checked against a running PenroseRoute API and database on 2026-09-27: the fleet, selected vehicle, route stops, order place names, and Incident association loaded without contract warnings. A running configured API/PostgreSQL is required for live fleet records. Demo mode remains available separately.
 
 ## Validation
 
@@ -79,5 +79,5 @@ At delivery, port 8000 was not serving PenroseRoute. Live database end-to-end ve
 
 Browser tests require Playwright and Chrome. Set `PLAYWRIGHT_MODULE` to an installed Playwright ESM module when it is not a project dependency, optionally set `CHROME_PATH`, `VEHICLES_BASE_URL`, and `HEADED=1` for a visible Chrome run. No extra app dependency is required.
 
-The browser suite covers Active/Available/Exception, inspector selection and close, direct-route compatibility, Orders context, contract envelopes, association pagination beyond 100 records, resource pagination with date/filter, no plan, no route, empty fleet, association failures, stops failures and Retry, missing Incident IDs, stable ordering, exception promotion, completion, reduced motion, and compact layout. API scenarios use intercepted responses matching the inspected Python schemas, **not a live database**. The standalone timeline check is `node scripts/check-vehicle-timeline.mjs`. A running configured API/PostgreSQL remains necessary for live fleet records.
+The browser suite covers Active/Available/Exception, inspector selection and close, direct-route compatibility, Orders context, contract envelopes, association pagination beyond 100 records, resource pagination with date/filter, no plan, no route, empty fleet, association failures, stops failures and Retry, missing Incident IDs, stable ordering, exception promotion, completion, reduced motion, and compact layout. API scenarios use intercepted responses matching the inspected Python schemas. The standalone timeline check is `node scripts/check-vehicle-timeline.mjs`. Live backend data was also verified through the same-origin gateway; a running configured API/PostgreSQL remains necessary for those records.
 

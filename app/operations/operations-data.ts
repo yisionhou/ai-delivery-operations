@@ -1,11 +1,12 @@
 import roadGeometry from './operations-road-routes.json';
 
 export type Coordinate = [number, number];
-export type StopKind = 'PICKUP' | 'DELIVERY';
+export type StopKind = 'PICKUP' | 'DELIVERY' | 'HANDOVER';
 export type Stop = {id:string; kind:StopKind; order:string; place:string; at:string; point:Coordinate; execution:'WAITING'|'IN_PROGRESS'|'COMPLETED'; risk:'NORMAL'|'AT_RISK'};
-export type Route = {id:string; vehicle:string; driver:string; distanceKm:number; durationMin:number; utilization:number; status:'ON_ROUTE'|'AT_RISK'|'UNAVAILABLE'; stops:Stop[]; path:Coordinate[]; firstDeliveryPathIndex:number};
+export type Route = {id:string; vehicle:string; driver:string; distanceKm:number; durationMin:number; utilization:number; status:'PLANNED'|'ON_ROUTE'|'AT_RISK'|'UNAVAILABLE'|'COMPLETED'|'CANCELLED'; vehicleStatus?:'AVAILABLE'|'ACTIVE'|'UNAVAILABLE'; routeExecutionStatus?:'PLANNED'|'ACTIVE'|'COMPLETED'|'CANCELLED'; stops:Stop[]; path:Coordinate[]; firstDeliveryPathIndex:number;geometrySource?:'STORED_GEOMETRY'|'STOP_CONNECTORS';roadAligned?:boolean};
 export type Alert = {id:string; title:string; detail:string; level:'risk'|'incident'; incidentId?:string; vehicle:string};
-export type OperationsSnapshot = {source:'DEMO'; businessDate:string; plan:{id:string;version:number;status:'DRAFT'|'CURRENT'}|null; routes:Route[]; alerts:Alert[]; readiness:{orders:number;merchantsReady:number;merchantsPreparing:number;merchantsDelayed:number;vehicles:number;drivers:number}; unassigned:{order:string;reason:string}[]; constraintSummary:string[]};
+export type OperationsSnapshot = {source:'DEMO'|'API'; businessDate:string; plan:{id:string;code?:string;version:number;status:'DRAFT'|'CURRENT'}|null; routes:Route[]; alerts:Alert[]; readiness:{orders:number;merchantsReady:number;merchantsPreparing:number;merchantsDelayed:number;vehicles:number;drivers:number}; unassigned:{order:string;reason:string}[]; constraintSummary:string[];onTimeRate?:number|null;positions?:Record<string,Coordinate>};
+export const DEMO_BUSINESS_DATE='2026-09-26';
 
 // Explicit frontend fixture. These are not responses from PenroseRoute APIs.
 const routeRows:Omit<Route,'path'|'firstDeliveryPathIndex'|'distanceKm'>[]=[
@@ -35,13 +36,13 @@ const routes:Route[]=routeRows.map(route=>{
   return {...route,distanceKm:road.distanceKm,path:road.path,firstDeliveryPathIndex:road.firstDeliveryPathIndex,stops:route.stops.map((stop,index)=>({...stop,point:road.waypoints[index]}))};
 });
 
-const fixture:OperationsSnapshot={source:'DEMO',businessDate:'2026-09-26',plan:null,routes,alerts:[
+const fixture:OperationsSnapshot={source:'DEMO',businessDate:DEMO_BUSINESS_DATE,plan:null,routes,alerts:[
   {id:'A-01',title:'Delivery window at risk',detail:'O-020 and O-022 · Route R-02',level:'risk',vehicle:'V02'},
   {id:'INC-007',title:'Vehicle unavailable',detail:'V03 · Jurong East · recovery review',level:'incident',incidentId:'INC-007',vehicle:'V03'},
 ],readiness:{orders:10,merchantsReady:4,merchantsPreparing:0,merchantsDelayed:0,vehicles:4,drivers:4},unassigned:[],constraintSummary:['Pickup before delivery','Vehicle load capacity','Merchant ready times','Delivery time windows']};
 
 export interface OperationsAdapter {
-  load():Promise<OperationsSnapshot>;
+  load(date?:string,signal?:AbortSignal):Promise<OperationsSnapshot>;
   generate(snapshot:OperationsSnapshot):Promise<OperationsSnapshot>;
   confirm(snapshot:OperationsSnapshot):Promise<OperationsSnapshot>;
 }

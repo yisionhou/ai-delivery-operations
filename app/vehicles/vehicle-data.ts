@@ -42,6 +42,16 @@ export const groupOf=(vehicle:Vehicle):Exclude<Filter,'all'>=>vehicle.status==='
 export function progress(stops:VehicleStop[]){const completed=stops.filter(stop=>stop.status==='COMPLETED').length;return {completed,total:stops.length,remaining:stops.length-completed,percent:stops.length?Math.round(completed/stops.length*100):null,finished:stops.length>0&&completed===stops.length};}
 export const currentStop=(stops:VehicleStop[])=>stops.find(stop=>['IN_PROGRESS','ARRIVED','IN_SERVICE'].includes(stop.status))??stops.find(stop=>stop.status!=='COMPLETED')??null;
 export const stableVehicles=(vehicles:Vehicle[])=>[...vehicles].sort((a,b)=>a.code.localeCompare(b.code,undefined,{numeric:true})||a.id.localeCompare(b.id));
+export function pageFleetVehicles(fleet:Fleet,filter:Filter,page:number,pageSize:number){
+  const rows=stableVehicles(fleet.vehicles);
+  if(fleet.pagination){
+    const total=fleet.pagination.total;
+    return {vehicles:rows,page:fleet.pagination.page,pages:Math.max(1,Math.ceil(total/pageSize)),total};
+  }
+  const selected=rows.filter(vehicle=>filter==='all'||groupOf(vehicle)===filter);
+  const total=selected.length,pages=Math.max(1,Math.ceil(total/pageSize)),currentPage=Math.min(page,pages);
+  return {vehicles:selected.slice((currentPage-1)*pageSize,currentPage*pageSize),page:currentPage,pages,total};
+}
 export function incidentDestination(vehicle:Vehicle,query:string){return `/incidents?${query}&vehicle_id=${encodeURIComponent(vehicle.id)}${vehicle.incidentId?`&incident_id=${encodeURIComponent(vehicle.incidentId)}`:''}`;}
 export function contextQuery(date:string,filter:Filter,page:number,source='api'){return new URLSearchParams({business_date:date,filter,page:String(page),source}).toString();}
 export function readContext(params:URLSearchParams){const source=params.get('source')==='demo'?'demo':'api';const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Singapore',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());const date=params.get('business_date')??(source==='demo'?DEMO_DATE:today);const filter=params.get('filter')??'all';const page=Number(params.get('page')??1);return {source,date:/^\d{4}-\d{2}-\d{2}$/.test(date)?date:DEMO_DATE,filter:(['all','active','available','exception'].includes(filter)?filter:'all') as Filter,page:Number.isSafeInteger(page)&&page>0?page:1};}

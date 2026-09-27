@@ -19,16 +19,30 @@ async function all<T>(path:string,schema:z.ZodType<T>,signal:AbortSignal){
   for(let p=2;p<=first.total_pages;p++){const batch=await apiRead(path+`&page=${p}&page_size=100`,pagination(schema),signal);items.push(...batch.items);}
   return items;
 }
-export async function loadOrders(filters:Filters,signal:AbortSignal):Promise<Snapshot>{
+export async function loadOrderPage(filters:Filters,page:number,pageSize:number,source:'api'|'demo',signal:AbortSignal):Promise<{items:Order[];page:number;total:number;totalPages:number}>{
+  if(source==='demo'){
+    const rows=demoOrders(filters.date).filter(o=>(filters.execution==='All'||o.execution===filters.execution)&&(filters.risk==='All'||o.risk===filters.risk)).sort((a,b)=>a.code.localeCompare(b.code));
+    const total=rows.length,totalPages=Math.max(1,Math.ceil(total/pageSize)),currentPage=Math.min(page,totalPages);
+    return {items:rows.slice((currentPage-1)*pageSize,currentPage*pageSize),page:currentPage,total,totalPages};
+  }
   const query=new URLSearchParams({business_date:filters.date});
   if(filters.execution!=='All')query.set('execution_status',filters.execution);
   if(filters.risk!=='All')query.set('risk_status',filters.risk);
+  const read=(number:number)=>apiRead(`/orders?${query}&page=${number}&page_size=${pageSize}`,pagination(resource),signal);
+  const first=await read(page),totalPages=Math.max(1,first.total_pages);
+  const result=page>totalPages&&first.total>0?await read(totalPages):first;
+  return {items:result.items.map(r=>({id:r.id,code:r.order_code,merchant:`Merchant ${r.merchant_id}`,execution:r.execution_status,risk:r.risk_status,assignment:null,vehicle:null,eta:null,windowStart:r.delivery_window_start_at,windowEnd:r.delivery_window_end_at})),page:result.total===0?1:result.page,total:result.total,totalPages};
+}
+export async function loadOrders(filters:Filters,signal:AbortSignal):Promise<Snapshot>{
+  const query=new URLSearchParams({business_date:filters.date});
+  if(filters.execution!=='All')query.set('execution_status',filters.execution);
+  const matchesRisk=(risk:string)=>filters.risk==='All'||risk===filters.risk;
   let ops:z.infer<typeof operation>[];
   try{ops=await all('/operations/orders?'+query,operation,signal);}
   catch(e){
     if(!(e instanceof VehicleApiError)||e.code!=='CURRENT_PLAN_NOT_FOUND')throw e;
     const rows=await all('/orders?'+query,resource,signal);
-    return {source:'API',hasCurrentPlan:false,warnings:[],orders:rows.map(r=>({id:r.id,code:r.order_code,merchant:`Merchant ${r.merchant_id}`,execution:r.execution_status,risk:r.risk_status,assignment:null,vehicle:null,eta:null,windowStart:r.delivery_window_start_at,windowEnd:r.delivery_window_end_at}))};
+    return {source:'API',hasCurrentPlan:false,warnings:[],orders:rows.filter(r=>matchesRisk(r.risk_status)).map(r=>({id:r.id,code:r.order_code,merchant:`Merchant ${r.merchant_id}`,execution:r.execution_status,risk:r.risk_status,assignment:null,vehicle:null,eta:null,windowStart:r.delivery_window_start_at,windowEnd:r.delivery_window_end_at}))};
   }
   const clockStarted=performance.now();
   const [resources,vehicles]=await Promise.allSettled([all('/orders?'+query,resource,signal),all('/operations/vehicles?business_date='+encodeURIComponent(filters.date),vehicle,signal),
@@ -37,7 +51,9 @@ export async function loadOrders(filters:Filters,signal:AbortSignal):Promise<Sna
   if(signal.aborted)throw new DOMException('Aborted','AbortError');
   const windows=new Map(resources.status==='fulfilled'?resources.value.map(r=>[r.id,r]):[]);
   const codes=new Map(vehicles.status==='fulfilled'?vehicles.value.map(v=>[v.vehicle_id,v.vehicle_code]):[]);
-  return {source:'API',hasCurrentPlan:true,warnings:[...(resources.status==='rejected'?['Delivery windows could not be loaded. Time critical orders are unavailable.']:[]),...(vehicles.status==='rejected'?['Vehicle codes could not be loaded. Assigned vehicle IDs remain available.']:[])],orders:ops.map(o=>({id:o.order_id,code:o.order_code,merchant:o.merchant_name,execution:o.execution_status,risk:o.risk_status,assignment:o.assignment_status,vehicle:o.vehicle_id?(codes.get(o.vehicle_id)??`Vehicle ${o.vehicle_id}`):null,eta:o.delivery_eta,windowStart:windows.get(o.order_id)?.delivery_window_start_at??null,windowEnd:windows.get(o.order_id)?.delivery_window_end_at??null}))};
+  // The risk rail follows persisted order status; operations risk is a time-based ETA projection.
+  const orders=ops.map(o=>({id:o.order_id,code:o.order_code,merchant:o.merchant_name,execution:o.execution_status,risk:windows.get(o.order_id)?.risk_status??o.risk_status,assignment:o.assignment_status,vehicle:o.vehicle_id?(codes.get(o.vehicle_id)??`Vehicle ${o.vehicle_id}`):null,eta:o.delivery_eta,windowStart:windows.get(o.order_id)?.delivery_window_start_at??null,windowEnd:windows.get(o.order_id)?.delivery_window_end_at??null}));
+  return {source:'API',hasCurrentPlan:true,warnings:[...(resources.status==='rejected'?['Order records could not be loaded. Delivery windows and persisted risk status are unavailable.']:[]),...(vehicles.status==='rejected'?['Vehicle codes could not be loaded. Assigned vehicle IDs remain available.']:[])],orders:orders.filter(o=>matchesRisk(o.risk))};
 }
 // Explicit separate fixtures, never an automatic fallback after API errors.
 export async function loadDemo(filters:Filters,signal:AbortSignal):Promise<Snapshot>{

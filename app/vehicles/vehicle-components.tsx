@@ -31,7 +31,7 @@ export function RouteProgressTrack({stops,available=false,exception=false,loadin
         {[0,25,50,75,100].map(left=><span key={left} className="vf-node empty" style={{left:`${left}%`}}/>)}
       </>:<>
         <span className="vf-node origin" style={{left:0}}/>
-        {selected.map(stop=>{const left=(stops.indexOf(stop)+1)/stops.length*100;return <span key={stop.id} className={`vf-stop-anchor ${left===100?'last':''}`} style={{left:`${left}%`}}><span className="vf-node-label" title={stop.location}>{stop.location}</span><span className={`vf-node ${stop.status==='COMPLETED'?'done':''}`}>{stop.status==='COMPLETED'&&<Check/>}</span></span>;})}
+        {selected.map((stop,index)=>{const left=(stops.indexOf(stop)+1)/stops.length*100;return <span key={stop.id} className={`vf-stop-anchor ${index===0?'first':''} ${selected.length%2===1&&index===Math.floor(selected.length/2)?'middle':''} ${left===100?'last':''}`} style={{left:`${left}%`}} title={stop.location}><span className="vf-node-label">{stop.location}</span><span className={`vf-node ${stop.status==='COMPLETED'?'done':''}`}>{stop.status==='COMPLETED'&&<Check/>}</span></span>;})}
         <span className="vf-marker" style={{left:`${percent??0}%`}}><MotorbikeProgressMarker/></span>
       </>}
     </div>

@@ -39,7 +39,6 @@
 .west-focus-panel .route-summary small {font-size:9px;color:#8e9a94;line-height:1.45}
 .focus-note {display:flex;align-items:center;gap:5px;font-size:8px;color:#71817f;margin-top:19px}
 .focus-note svg {width:11px;height:11px}.focus-note>span {margin-left:auto}
-.has-region-focus .live-card {opacity:0;pointer-events:none;transition:opacity .3s}
 @keyframes situation-enter {from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
 @media(max-height:900px){.west-focus-panel{top:20px;padding:16px}.west-focus-panel h3{font-size:25px;margin-top:9px}.focus-health{margin-top:13px}.west-focus-panel .focus-stats{margin-top:12px}.west-focus-panel .focus-stats>span{padding:8px 0}.focus-section-title{margin-top:12px}.focus-summary{font-size:10px}.focus-performance{margin-top:11px}.west-focus-panel .route-summary{margin-top:12px;padding-top:11px}.focus-note{margin-top:12px}}
 @media(prefers-reduced-motion:reduce){.west-focus-panel{animation:none}}

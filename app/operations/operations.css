@@ -45,3 +45,5 @@
 .ops-page .ops-vehicle-list small,.ops-page .ops-queue small,.ops-page .ops-alert-list small,.ops-page .ops-alert-list button,.ops-page .ops-timeline article>button small,.ops-page .ops-timeline-stops span,.ops-page .ops-timeline-stops small,.ops-page .ops-timeline-stops em{font-size:12px}
 .ops-page .ops-timeline article>button b{font-size:14px}
 @media(max-width:780px){.ops-page .ops-view-switch button{font-size:0}}
+.ops-header-state button,.ops-header-state input{border:1px solid rgba(216,181,113,.28);border-radius:5px;background:#111718;color:#e3d5b4;padding:8px 10px;font:500 11px Inter,Arial,sans-serif;letter-spacing:0}.ops-header-state button[aria-pressed="true"]{background:rgba(216,181,113,.18);border-color:#d8b571}.ops-header-state button svg{width:14px;height:14px}.ops-header-state input{color-scheme:dark}.ops-header-state input:focus-visible{outline:2px solid #e5c788;outline-offset:2px}@media(max-width:1050px){.ops-header{gap:15px;flex-wrap:wrap}.ops-header-state{flex-wrap:wrap}}@media(max-width:780px){.ops-header-state{display:flex}.ops-header-state small{margin-left:0}}
+.ops-header-state input:disabled{opacity:.65;cursor:default}
