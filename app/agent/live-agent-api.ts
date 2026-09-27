@@ -9,9 +9,11 @@ const incident=incidentItem.extend({base_plan_code:z.string(),vehicle_id:z.strin
 const currentPlan=z.object({id:z.string(),plan_code:z.string(),business_date:z.string(),status:z.string()});
 const affected=z.object({order_id:z.string(),was_completed:z.boolean(),was_picked_up:z.boolean(),handover_required:z.boolean(),impact_type:z.string(),impact_reason:z.string()});
 const attempt=z.object({recovery_plan_id:z.string(),attempt_no:z.number(),status:z.string(),solver_status:z.string().nullable(),validation_status:z.string().nullable(),candidate_delivery_plan_id:z.string().nullable(),candidate_plan_code:z.string().nullable().optional(),scope_description:z.string().optional(),base_delivery_plan_id:z.string(),agent_explanation:z.string().nullable().optional(),solver_validation_summary:z.object({explanation_source:z.string().optional()}).nullable().optional()});
+const recoveryOption=attempt.extend({priority:z.number(),reviewable:z.boolean(),strategy:z.string(),ranking_reason:z.string(),metrics:z.object({unassigned_order_count:z.number(),reassigned_order_count:z.number(),changed_order_count:z.number(),handover_count:z.number(),completion_at:z.string()})});
+const recoveryOptions=z.object({outcome:z.string(),candidates:z.array(recoveryOption),recommended_recovery_plan_id:z.string().nullable(),manual_intervention_required:z.boolean()});
 const orderChange=z.object({order_id:z.string(),base_assignment_status:z.string().nullable(),candidate_assignment_status:z.string().nullable(),base_vehicle_id:z.string().nullable(),candidate_vehicle_id:z.string().nullable(),assignment_changed:z.boolean(),route_task_changed:z.boolean(),base_delivery_eta:z.string().nullable(),candidate_delivery_eta:z.string().nullable(),eta_delta_seconds:z.number().nullable(),eta_unavailable_reason:z.string().nullable()});
 const stopChange=z.object({order_id:z.string(),stop_type:z.string(),change_type:z.string(),base_vehicle_id:z.string().nullable(),candidate_vehicle_id:z.string().nullable(),base_location_id:z.string().nullable(),candidate_location_id:z.string().nullable()});
-const comparison=z.object({recovery_plan_id:z.string(),base_plan_id:z.string(),candidate_plan_id:z.string(),business_date:z.string(),comparison_at:z.string(),base_plan_status:z.string(),candidate_plan_status:z.string(),reviewable:z.boolean(),reassigned_order_count:z.number(),affected_vehicle_ids:z.array(z.string()),frozen_completed_order_ids:z.array(z.string()),orders:z.array(orderChange),stop_changes:z.array(stopChange),remaining_metrics:z.object({base_distance_meters:z.number().nullable(),candidate_distance_meters:z.number().nullable(),delta_distance_meters:z.number().nullable(),base_duration_seconds:z.number().nullable(),candidate_duration_seconds:z.number().nullable(),delta_duration_seconds:z.number().nullable(),reason:z.string().nullable()})});
+const comparison=z.object({recovery_plan_id:z.string(),base_plan_id:z.string(),candidate_plan_id:z.string(),business_date:z.string(),comparison_at:z.string(),base_plan_status:z.string(),candidate_plan_status:z.string(),reviewable:z.boolean(),reassigned_order_count:z.number(),affected_vehicle_ids:z.array(z.string()),frozen_completed_order_ids:z.array(z.string()),orders:z.array(orderChange),stop_changes:z.array(stopChange),remaining_metrics:z.object({base_distance_meters:z.number().nullable(),candidate_distance_meters:z.number().nullable(),delta_distance_meters:z.number().nullable(),base_duration_seconds:z.number().nullable(),candidate_duration_seconds:z.number().nullable(),delta_duration_seconds:z.number().nullable(),reason:z.string().nullable()}),plan_impact:z.object({base_plan_distance_meters:z.number(),candidate_plan_distance_meters:z.number(),planned_distance_delta_meters:z.number(),base_completion_at:z.string().nullable(),candidate_completion_at:z.string().nullable(),planned_completion_delta_seconds:z.number().nullable(),completed_stops_protected:z.number(),unchanged_route_tasks:z.number()}).optional()});
 const dashboard=z.object({current_plan:z.object({delivery_plan_id:z.string(),plan_code:z.string()}),orders:z.object({total:z.number(),at_risk:z.number()}),vehicles:z.object({available:z.number(),active:z.number(),unavailable:z.number()}),on_time:z.object({rate:z.number().nullable()})});
 const alert=z.object({id:z.string(),order_id:z.string(),risk_type:z.string(),reason_category:z.string().nullable(),evidence:z.record(z.unknown()),detected_at:z.string()});
 const order=z.object({order_code:z.string(),delivery_location:z.object({display_name:z.string()})});
@@ -122,45 +124,62 @@ function reviewSnapshot(raw:z.infer<typeof comparison>,rows:z.infer<typeof affec
     candidateStatus:raw.candidate_plan_status==='CURRENT'?'APPLIED':raw.reviewable?'READY':'STALE',baseIsCurrent:raw.base_plan_status==='CURRENT',comparable:true,approvalEligible:raw.reviewable,staleReason:raw.reviewable?null:'Candidate is no longer eligible for approval.',
     assignmentChanges,stopChanges,etaChanges,
     unassignedChanges:changed.filter(item=>item.base_assignment_status!==item.candidate_assignment_status).map(item=>({orderId:orderCodes.get(item.order_id)??codeFallback(item.order_id),from:item.base_assignment_status==='ASSIGNED'?'ASSIGNED' as const:'UNASSIGNED' as const,to:item.candidate_assignment_status==='ASSIGNED'?'ASSIGNED' as const:'UNASSIGNED' as const,reason:'Plan membership changed.'})),
-    disturbanceSummary:{reassignedOrders:raw.reassigned_order_count,affectedVehicles:raw.affected_vehicle_ids.length,routeTasksChanged:raw.stop_changes.length,routeSummary:`${raw.reassigned_order_count} order(s) reassigned; ${raw.stop_changes.length} route task(s) changed.`,etaSummary:comparableEta?`${comparableEta} order ETA difference(s) available.`:'Historical ETA differences unavailable.',protectedWork:`${raw.frozen_completed_order_ids.length} completed order(s) frozen and protected.`,completedStopsProtected:null,routeTasksUnchanged:null,protectedCountsUnavailableReason:'Completed-stop and unchanged-task counts are not provided by this comparison.'},
+    disturbanceSummary:{reassignedOrders:raw.reassigned_order_count,affectedVehicles:raw.affected_vehicle_ids.length,routeTasksChanged:raw.stop_changes.length,routeSummary:`${raw.reassigned_order_count} order(s) reassigned; ${raw.stop_changes.length} route task(s) changed.`,etaSummary:comparableEta?`${comparableEta} order ETA difference(s) available.`:'Historical ETA differences unavailable.',protectedWork:`${raw.frozen_completed_order_ids.length} completed order(s) frozen and protected.`,completedStopsProtected:raw.plan_impact?.completed_stops_protected??null,routeTasksUnchanged:raw.plan_impact?.unchanged_route_tasks??null,protectedCountsUnavailableReason:raw.plan_impact?undefined:'Completed-stop and unchanged-task counts are not provided by this comparison.'},
     remainingMetrics:{distance:metric(raw.remaining_metrics.base_distance_meters,raw.remaining_metrics.candidate_distance_meters,raw.remaining_metrics.delta_distance_meters,'m'),duration:metric(raw.remaining_metrics.base_duration_seconds,raw.remaining_metrics.candidate_duration_seconds,raw.remaining_metrics.delta_duration_seconds,'s')},
     missingMetrics:raw.remaining_metrics.reason?[{metric:'Remaining distance and duration',reason}]:[],mapChanges:{base:{type:'LineString',coordinates:[]},candidate:{},orderIds:[],vehicleIds:[]}};
   return {comparison:mapped,orders:changed.map(item=>({id:orderCodes.get(item.order_id)??codeFallback(item.order_id),location:locations.get(item.order_id)??'Location unavailable in order snapshot'}))};
 }
 
 export async function loadLiveRecovery({incidentId,signal}:{incidentId:string;signal:AbortSignal}):Promise<RecoveryOptionsData>{
-  const [context,affectedOrders,attempts]=await Promise.all([
+  const [context,affectedOrders,savedOptions]=await Promise.all([
     apiRead(`/incidents/${encodeURIComponent(incidentId)}`,incident,signal),
     apiRead(`/incidents/${encodeURIComponent(incidentId)}/affected-orders`,z.array(affected),signal),
-    apiRead(`/incidents/${encodeURIComponent(incidentId)}/recovery-plans`,z.array(attempt),signal),
+    apiRead(`/incidents/${encodeURIComponent(incidentId)}/recovery-options`,recoveryOptions,signal),
   ]);
-  let reviewable=attempts.filter(item=>item.status==='PENDING_REVIEW'&&item.validation_status==='VALID'&&item.candidate_delivery_plan_id);
-  if(!reviewable.length&&context.status!=='RESOLVED'&&context.requires_replanning){
-    const started=await apiCommand(`/incidents/${encodeURIComponent(incidentId)}/recovery`,{},z.object({reviewable_recovery_plan_id:z.string().nullable()}),signal);
-    if(started.reviewable_recovery_plan_id)reviewable=[await apiRead(`/recovery-plans/${started.reviewable_recovery_plan_id}`,attempt,signal)];
+  let currentOptions=savedOptions;
+  if(savedOptions.outcome==='NOT_STARTED'&&context.status!=='RESOLVED'&&context.requires_replanning){
+    currentOptions=await apiCommand(`/incidents/${encodeURIComponent(incidentId)}/recovery-options`,{max_candidates:3},recoveryOptions,signal);
   }
-  const chosen=reviewable.at(-1);
-  if(!chosen)return {source:'live',incidentId,resourceId:context.vehicle_id??context.merchant_id??'Merchant',currentPlanId:context.base_delivery_plan_id,totalOrdersCount:0,affectedOrdersCount:affectedOrders.length,affectedOrderIds:affectedOrders.map(row=>codeFallback(row.order_id)),nearbyAvailableResourcesCount:null,candidates:[],blockedReason:'No feasible reviewable Recovery candidate is available.'};
-  const raw=await apiRead(`/recovery-plans/${chosen.recovery_plan_id}/comparison`,comparison,signal);
-  if(raw.base_plan_id!==context.base_delivery_plan_id||raw.candidate_plan_id!==chosen.candidate_delivery_plan_id||raw.recovery_plan_id!==chosen.recovery_plan_id)throw new Error('Recovery comparison does not match this Incident.');
-  const selected=raw.orders.filter(row=>row.assignment_changed||row.route_task_changed||affectedOrders.some(a=>a.order_id===row.order_id));
+  let choices: z.infer<typeof attempt>[];
+  if(currentOptions.outcome==='LEGACY_RECOVERY'){
+    const attempts=await apiRead(`/incidents/${encodeURIComponent(incidentId)}/recovery-plans`,z.array(attempt),signal);
+    let pending=attempts.filter(item=>item.status==='PENDING_REVIEW'&&item.validation_status==='VALID'&&item.candidate_delivery_plan_id);
+    if(!pending.length&&context.status!=='RESOLVED'&&context.requires_replanning){
+      const started=await apiCommand(`/incidents/${encodeURIComponent(incidentId)}/recovery`,{},z.object({reviewable_recovery_plan_id:z.string().nullable()}),signal);
+      if(started.reviewable_recovery_plan_id)pending=[await apiRead(`/recovery-plans/${started.reviewable_recovery_plan_id}`,attempt,signal)];
+    }
+    choices=pending.slice(-1);
+  }else{
+    choices=currentOptions.candidates.filter(item=>item.reviewable&&item.status==='PENDING_REVIEW'&&item.validation_status==='VALID'&&item.candidate_delivery_plan_id);
+  }
+  if(!choices.length)return {source:'live',incidentId,resourceId:context.vehicle_id??context.merchant_id??'Merchant',currentPlanId:context.base_delivery_plan_id,totalOrdersCount:0,affectedOrdersCount:affectedOrders.length,affectedOrderIds:affectedOrders.map(row=>codeFallback(row.order_id)),nearbyAvailableResourcesCount:null,candidates:[],blockedReason:currentOptions.manual_intervention_required?'No feasible recovery options are available; manual intervention is required.':'No reviewable Recovery candidate is available.'};
+  const comparisons=await Promise.all(choices.map(choice=>apiRead(`/recovery-plans/${choice.recovery_plan_id}/comparison`,comparison,signal)));
+  for(const [index,raw] of comparisons.entries()){
+    const choice=choices[index];
+    if(raw.base_plan_id!==context.base_delivery_plan_id||raw.candidate_plan_id!==choice.candidate_delivery_plan_id||raw.recovery_plan_id!==choice.recovery_plan_id)throw new Error('Recovery comparison does not match this Incident.');
+  }
+  const selected=comparisons.flatMap(raw=>raw.orders.filter(row=>row.assignment_changed||row.route_task_changed||affectedOrders.some(a=>a.order_id===row.order_id)));
   const vehicleIds=[...new Set(selected.flatMap(row=>[row.base_vehicle_id,row.candidate_vehicle_id]).filter((id):id is string=>Boolean(id)))];
+  const orderIds=[...new Set(selected.map(row=>row.order_id))];
   const [orderEntries,vehicleEntries]=await Promise.all([
-    Promise.all(selected.map(async item=>[item.order_id,await apiRead(`/orders/${item.order_id}`,order,signal)] as const)),
+    Promise.all(orderIds.map(async id=>[id,await apiRead(`/orders/${id}`,order,signal)] as const)),
     Promise.all(vehicleIds.map(async id=>[id,await apiRead(`/vehicles/${id}`,vehicle,signal)] as const)),
   ]);
   const orderCodes=new Map(orderEntries.map(([id,item])=>[id,item.order_code]));
   const locations=new Map(orderEntries.map(([id,item])=>[id,item.delivery_location.display_name]));
   const vehicleCodes=new Map(vehicleEntries.map(([id,item])=>[id,item.vehicle_code]));
-  const snapshot=reviewSnapshot(raw,affectedOrders,orderCodes,vehicleCodes,locations);
-  const assigned=snapshot.comparison.assignmentChanges;
-  const orderReassignments=assigned.map(row=>({orderId:row.orderId,fromResource:row.baseVehicle!,toResource:row.candidateVehicle!,arrival:clock(selected.find(item=>orderCodes.get(item.order_id)===row.orderId)?.candidate_delivery_eta??null)??undefined,impact:row.reassigned?'Reassigned':'Original assignment'}));
   const resourceId=context.vehicle_id?vehicleCodes.get(context.vehicle_id)??codeFallback(context.vehicle_id):context.merchant_id?codeFallback(context.merchant_id):'Merchant';
-  const historicalChinese=/[\u3400-\u9fff]/u.test(chosen.agent_explanation??'');
-  const verifiedSummary=`${raw.reassigned_order_count} order(s) reassigned; ${affectedOrders.filter(row=>row.handover_required).length} handover order(s). The validated Candidate requires dispatcher approval before becoming Current.`;
-  const explanation=historicalChinese?verifiedSummary:chosen.agent_explanation??'Feasible Candidate ready for dispatcher review.';
-  const candidate:RecoveryCandidate={id:chosen.recovery_plan_id,label:'A',title:/[\u3400-\u9fff]/u.test(chosen.scope_description??'')?`Recovery Candidate · Attempt ${chosen.attempt_no}`:chosen.scope_description??'Recovery Candidate',description:explanation,reassignedOrdersCount:raw.reassigned_order_count,completionImpactMinutes:null,distanceImpactKm:raw.remaining_metrics.delta_distance_meters===null?null:raw.remaining_metrics.delta_distance_meters/1000,orderReassignments,routeImpact:{orders:[],originalRoute:[],recoveryRoutes:[]},recommendationReason:explanation,explanationSource:historicalChinese?'verified_comparison_summary':chosen.solver_validation_summary?.explanation_source??'unknown',reviewSnapshot:snapshot};
-  return {source:'live',incidentId,resourceId,currentPlanId:context.base_delivery_plan_id,totalOrdersCount:raw.orders.length,affectedOrdersCount:affectedOrders.length,affectedOrderIds:affectedOrders.map(row=>orderCodes.get(row.order_id)??codeFallback(row.order_id)),nearbyAvailableResourcesCount:null,candidates:[candidate]};
+  const candidates:RecoveryCandidate[]=choices.map((choice,index)=>{
+    const raw=comparisons[index];
+    const snapshot=reviewSnapshot(raw,affectedOrders,orderCodes,vehicleCodes,locations);
+    const rows=raw.orders.filter(row=>row.assignment_changed||row.route_task_changed||affectedOrders.some(a=>a.order_id===row.order_id));
+    const orderReassignments=snapshot.comparison.assignmentChanges.map(row=>({orderId:row.orderId,fromResource:row.baseVehicle!,toResource:row.candidateVehicle!,arrival:clock(rows.find(item=>orderCodes.get(item.order_id)===row.orderId)?.candidate_delivery_eta??null)??undefined,impact:row.reassigned?'Reassigned':'Original assignment'}));
+    const historicalChinese=/[\u3400-\u9fff]/u.test(choice.agent_explanation??'');
+    const verifiedSummary=`${raw.reassigned_order_count} order(s) reassigned; ${affectedOrders.filter(row=>row.handover_required).length} handover order(s). The validated Candidate requires dispatcher approval before becoming Current.`;
+    const explanation=historicalChinese?verifiedSummary:choice.agent_explanation??'Feasible Candidate ready for dispatcher review.';
+    return {id:choice.recovery_plan_id,label:String.fromCharCode(65+index),title:/[\u3400-\u9fff]/u.test(choice.scope_description??'')?`Recovery Candidate · Attempt ${choice.attempt_no}`:choice.scope_description??'Recovery Candidate',description:explanation,reassignedOrdersCount:raw.reassigned_order_count,completionImpactMinutes:raw.plan_impact?.planned_completion_delta_seconds==null?null:Math.round(raw.plan_impact.planned_completion_delta_seconds/6)/10,distanceImpactKm:raw.plan_impact?Math.round(raw.plan_impact.planned_distance_delta_meters/10)/100:null,validationStatus:choice.solver_status==='FEASIBLE'?choice.validation_status??undefined:undefined,orderReassignments,routeImpact:{orders:[],originalRoute:[],recoveryRoutes:[]},recommendationReason:explanation,explanationSource:historicalChinese?'verified_comparison_summary':choice.solver_validation_summary?.explanation_source??'unknown',reviewSnapshot:snapshot};
+  });
+  return {source:'live',incidentId,resourceId,currentPlanId:context.base_delivery_plan_id,totalOrdersCount:comparisons[0].orders.length,affectedOrdersCount:affectedOrders.length,affectedOrderIds:affectedOrders.map(row=>orderCodes.get(row.order_id)??codeFallback(row.order_id)),nearbyAvailableResourcesCount:null,candidates,recommendedCandidateId:currentOptions.recommended_recovery_plan_id??undefined};
 }
 
 export type AgentQuestionContext={business_date:string;incident_id?:string;recovery_plan_id?:string;order_id?:string;alert_id?:string};

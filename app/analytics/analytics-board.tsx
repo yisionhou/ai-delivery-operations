@@ -4,11 +4,13 @@ import type {RefObject} from 'react';
 import {useRouter,useSearchParams} from 'next/navigation';
 import {AlertTriangle,ArrowLeftRight,CheckCircle2,CircleDashed,Clock3,Coins,FileText,Info,Package,Route,ShieldCheck,Truck,Users} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
-import {DEMO_ANALYTICS_DATE,demoAnalyticsSnapshots} from './analytics-demo';
+import {loadIncidentIndex} from '../incidents/incident-read-api';
+import type {IncidentIndexItem,IncidentReview} from '../incidents/incident-read-api';
+import {isCurrentAnalyticsContext,loadAnalyticsIncident} from './analytics-api';
+import type {AnalyticsSnapshot} from './analytics-model';
 import {barWidths,buildAnalytics} from './analytics-model';
 import {easeOutCubic,ringFrame} from './analytics-motion';
 
-type Option={id:string;code:string};
 type AttemptOption={id:string;number:number;status:string};
 type Filter='All'|'Changed'|'Handover'|'Unassigned'|'Frozen';
 const signed=(value:number|null,digits=1)=>value===null?'—':`${value>0?'+':''}${value.toFixed(digits)}`;
@@ -91,26 +93,47 @@ function EvidencePanel({view,attempts}:{view:ReturnType<typeof buildAnalytics>;a
 
 function AssumptionsPanel({view}:{view:ReturnType<typeof buildAnalytics>}){
   const {snapshot}=view;
-  return <section className="an-panel an-assumptions"><header><h2>Cost Assumptions</h2></header><dl><div><dt><Coins/>Mileage rate</dt><dd>{snapshot.ratePerKm===null?'Not configured':`SGD ${snapshot.ratePerKm.toFixed(2)} / km`}</dd></div><div><dt><Route/>Distance source</dt><dd>{snapshot.distanceSource}</dd></div><div><dt><FileText/>Cost model</dt><dd>{snapshot.ratePerKm===null?'Not calculated':'Mileage only'}</dd></div><div><dt><Info/>Data source</dt><dd>Test database snapshot · {snapshot.businessDate}</dd></div></dl><p><Info/>No comparable remaining distance or actual cost data is available.</p></section>;
+  return <section className="an-panel an-assumptions"><header><h2>Cost Assumptions</h2></header><dl><div><dt><Coins/>Mileage rate</dt><dd>{snapshot.ratePerKm===null?'Not configured':`SGD ${snapshot.ratePerKm.toFixed(2)} / km`}</dd></div><div><dt><Route/>Distance source</dt><dd>{snapshot.distanceSource}</dd></div><div><dt><FileText/>Cost model</dt><dd>{snapshot.ratePerKm===null?'Not calculated':'Mileage only'}</dd></div><div><dt><Info/>Data source</dt><dd>Backend incident &amp; recovery records · {snapshot.businessDate}</dd></div></dl><p><Info/>{view.costReason??'Mileage-only estimate; not actual operating cost.'}</p></section>;
 }
+
+const todayInSingapore=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Singapore',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 
 export default function AnalyticsBoard(){
   const router=useRouter(),params=useSearchParams();
-  const date=params.get('source')==='api'?DEMO_ANALYTICS_DATE:params.get('business_date')??DEMO_ANALYTICS_DATE;
+  const date=params.get('business_date')??todayInSingapore();
   const incidentId=params.get('incident_id'),attemptId=params.get('attempt_id');
+  const [retry,setRetry]=useState(0);
+  const [indexState,setIndexState]=useState<{key:string;items:IncidentIndexItem[];error:string|null}>({key:'',items:[],error:null});
+  const [reviewState,setReviewState]=useState<{key:string;review:IncidentReview|null;snapshot:AnalyticsSnapshot|null;error:string|null}>({key:'',review:null,snapshot:null,error:null});
   useEffect(()=>{
     if(!params.has('source'))return;
     const next=new URLSearchParams(params.toString());
-    if(next.get('source')==='api'){next.delete('business_date');next.delete('incident_id');next.delete('attempt_id');}
     next.delete('source');
     router.replace(`/analytics${next.toString()?`?${next}`:''}`,{scroll:false});
   },[params,router]);
-  const available=demoAnalyticsSnapshots.filter(item=>item.businessDate===date);
-  const incidents:Option[]=[...new Map(available.map(item=>[item.incident.id,{id:item.incident.id,code:item.incident.code}])).values()];
+  const indexKey=`${date}:${retry}`;
+  useEffect(()=>{
+    const controller=new AbortController();
+    loadIncidentIndex(date,controller.signal).then(items=>{if(!controller.signal.aborted)setIndexState({key:indexKey,items,error:null});}).catch(cause=>{if(!controller.signal.aborted)setIndexState({key:indexKey,items:[],error:cause instanceof Error?cause.message:'Unable to load incidents.'});});
+    return()=>controller.abort();
+  },[date,indexKey]);
+  const loadingIndex=indexState.key!==indexKey;
+  const incidents=loadingIndex?[]:indexState.items;
   const selectedIncident=incidents.find(item=>item.id===incidentId)??incidents[0];
-  const choices=available.filter(item=>item.incident.id===selectedIncident?.id).sort((a,b)=>b.attempt.number-a.attempt.number);
-  const attempts:AttemptOption[]=choices.map(item=>({id:item.attempt.id,number:item.attempt.number,status:item.attempt.status}));
-  const snapshot=choices.find(item=>item.attempt.id===attemptId)??choices[0]??null;
+  const selectedId=selectedIncident?.id??null;
+  const reviewKey=`${indexKey}:${selectedId??''}:${attemptId??''}`;
+  useEffect(()=>{
+    if(!selectedId)return;
+    const controller=new AbortController();
+    loadAnalyticsIncident(selectedId,attemptId,controller.signal).then(result=>{if(!controller.signal.aborted)setReviewState({key:reviewKey,...result,error:null});}).catch(cause=>{if(!controller.signal.aborted)setReviewState({key:reviewKey,review:null,snapshot:null,error:cause instanceof Error?cause.message:'Unable to load analytics.'});});
+    return()=>controller.abort();
+  },[selectedId,attemptId,reviewKey]);
+  const currentReview=isCurrentAnalyticsContext(reviewState.key,reviewKey,selectedId);
+  const loadingReview=Boolean(selectedId)&&!currentReview;
+  const review=currentReview?reviewState.review:null;
+  const snapshot=currentReview?reviewState.snapshot:null;
+  const error=loadingIndex?null:indexState.error??(loadingReview?null:reviewState.error);
+  const attempts:AttemptOption[]=review?[...review.attempts].reverse().map(item=>({id:item.recovery_plan_id,number:item.attempt_no,status:item.status})):[];
   const data={incidents,attempts,snapshot};
   const update=(change:{date?:string;incidentId?:string|null;attemptId?:string|null})=>{
     const next=new URLSearchParams(params.toString());
@@ -125,8 +148,8 @@ export default function AnalyticsBoard(){
   return <div className="vf-page an-page">
     <header className="vf-page-header an-header"><div><span className="vf-eyebrow">FLEET / ANALYTICS</span><h1>Analytics</h1><p>Planning and recovery impact for the current operating day.</p></div></header>
     <div className="vf-toolbar an-toolbar"><label className="vf-date"><span>Business Date</span><input type="date" value={date} aria-label="Business Date" onChange={event=>event.target.value&&update({date:event.target.value})}/></label></div>
-    {data.incidents.length>0&&<div className="an-context"><label>Incident <select value={data.snapshot?.incident.id??data.incidents[0].id} onChange={event=>update({incidentId:event.target.value})}>{data.incidents.map(item=><option key={item.id} value={item.id}>{item.code}</option>)}</select></label><label>Recovery Attempt <select value={data.snapshot?.attempt.id??''} onChange={event=>update({attemptId:event.target.value})}>{data.attempts.length?data.attempts.map(item=><option value={item.id} key={item.id}>#{item.number} · {item.status}</option>):<option value="">No attempts</option>}</select></label><span>Base Plan <b>{data.snapshot?.basePlan??'—'}</b> → Candidate <b>{data.snapshot?.candidatePlan??'—'}</b></span><span className="an-context-status">{data.snapshot?.attempt.decision??(data.snapshot?.candidatePlan?'Pending Review':'No Candidate')}</span></div>}
-    {!view?<div className="an-state"><h2>No analytics snapshot for this business date</h2><p>Choose 2026/09/27 to view the test database snapshot.</p></div>:<>
+    {data.incidents.length>0&&<div className="an-context"><label>Incident <select value={selectedIncident?.id??''} onChange={event=>update({incidentId:event.target.value})}>{data.incidents.map(item=><option key={item.id} value={item.id}>{item.incident_code} · {readable(item.status)}</option>)}</select></label><label>Recovery Attempt <select value={review?.selectedAttempt?.recovery_plan_id??''} disabled={!data.attempts.length} onChange={event=>update({attemptId:event.target.value})}>{data.attempts.length?data.attempts.map(item=><option value={item.id} key={item.id}>#{item.number} · {item.status}</option>):<option value="">No attempts</option>}</select></label><span>Base Plan <b>{data.snapshot?.basePlan??review?.incident.base_plan_code??'—'}</b> → Candidate <b>{data.snapshot?.candidatePlan??'—'}</b></span><span className="an-context-status">{data.snapshot?.attempt.decision??(data.snapshot?.candidatePlan?'Pending Review':selectedIncident?readable(selectedIncident.status):'No Candidate')}</span></div>}
+    {error?<div className="an-state" role="alert"><h2>Analytics could not be loaded</h2><p>{error}</p><button type="button" onClick={()=>setRetry(value=>value+1)}>Retry</button></div>:loadingIndex||loadingReview?<div className="an-state" role="status"><h2>Loading analytics…</h2></div>:!view?<div className="an-state"><h2>{selectedIncident?'No recovery attempt for this incident':'No incidents for this business date'}</h2><p>{selectedIncident?'This incident has no Candidate comparison. Select another incident to review recovery outcomes.':'Choose a business date with incidents to view planning and recovery results.'}</p></div>:<>
       {!view.snapshot.candidatePlan&&<div className="an-notice"><Info/><span>This attempt produced no Candidate. Recovery metrics and charts remain unavailable.</span></div>}
       <section className="an-kpis" aria-label="Recovery metrics"><MetricCard icon={Package} label="Recovered Orders" value={view.recovered===null?'—':`${view.recovered} / ${view.affected}`} detail="Affected unfinished orders with a feasible plan · not delivered" reason={!view.snapshot.candidatePlan?'No Candidate plan':null}/><MetricCard icon={ArrowLeftRight} label="Reassigned Orders" value={view.reassigned===null?'—':String(view.reassigned)} detail="Assigned orders moved to another vehicle" reason={!view.snapshot.candidatePlan?'No Candidate plan':null}/><MetricCard icon={Route} label="Remaining Distance Change" value={view.distanceChangeKm===null?'—':`${signed(view.distanceChangeKm)} km`} detail="Candidate minus Base · comparable remaining route" reason={view.distanceReason}/><MetricCard icon={Coins} label="Estimated Mileage Cost Change" value={view.costChange===null?'—':`${view.costChange>0?'+':''}${price(view.costChange)}`} detail="Distance change × mileage assumption" reason={view.costReason}/></section>
       <div className="an-main-grid" key={chartKey}><ComparisonPanel view={view}/><ImpactPanel view={view}/></div>

@@ -74,11 +74,12 @@ test('switching to an explicit Incident loads that ID instead of the automatic s
   assert.equal(result.incidentOptions.length,2);
 }));
 
-test('live recovery reuses a pending candidate and preserves unavailable comparison metrics',()=>withFetch({
+test('live recovery shows calculated plan impact and validated status without inventing remaining metrics',()=>withFetch({
   [`GET /api/incidents/${incident.id}`]:incident,
   [`GET /api/incidents/${incident.id}/affected-orders`]:affected,
+  [`GET /api/incidents/${incident.id}/recovery-options`]:{outcome:'LEGACY_RECOVERY',candidates:[],recommended_recovery_plan_id:null,manual_intervention_required:false},
   [`GET /api/incidents/${incident.id}/recovery-plans`]:[recovery],
-  [`GET /api/recovery-plans/${recovery.recovery_plan_id}/comparison`]:comparison,
+  [`GET /api/recovery-plans/${recovery.recovery_plan_id}/comparison`]:{...comparison,plan_impact:{base_plan_distance_meters:10000,candidate_plan_distance_meters:11250,planned_distance_delta_meters:1250,base_completion_at:'2026-09-27T04:00:00Z',candidate_completion_at:'2026-09-27T04:15:00Z',planned_completion_delta_seconds:900,completed_stops_protected:1,unchanged_route_tasks:3}},
   [`GET /api/orders/${affected[0].order_id}`]:{order_code:'ORD-LIVE',delivery_location:{display_name:'Customer A'}},
   [`GET /api/vehicles/${incident.vehicle_id}`]:{vehicle_code:'VEH-LIVE'},
   'GET /api/vehicles/77777777-7777-4777-8777-777777777777':{vehicle_code:'VEH-NEW'},
@@ -87,7 +88,12 @@ test('live recovery reuses a pending candidate and preserves unavailable compari
   assert.equal(result.source,'live');
   assert.equal(result.candidates.length,1);
   assert.equal(result.candidates[0].reassignedOrdersCount,1);
-  assert.equal(result.candidates[0].distanceImpactKm,null);
+  assert.equal(result.candidates[0].distanceImpactKm,1.25);
+  assert.equal(result.candidates[0].completionImpactMinutes,15);
+  assert.equal(result.candidates[0].validationStatus,'VALID');
+  assert.equal(result.candidates[0].reviewSnapshot.comparison.disturbanceSummary.completedStopsProtected,1);
+  assert.equal(result.candidates[0].reviewSnapshot.comparison.disturbanceSummary.routeTasksUnchanged,3);
+  assert.equal(result.candidates[0].reviewSnapshot.comparison.remainingMetrics.distance.comparable,false);
   assert.equal(result.candidates[0].successProbability,undefined);
   assert.equal(result.candidates[0].explanationSource,'template_fallback');
   assert.equal(result.recommendedCandidateId,undefined);
@@ -95,9 +101,50 @@ test('live recovery reuses a pending candidate and preserves unavailable compari
   assert.ok(calls.every(call=>call.key.startsWith('GET ')));
 }));
 
+test('live recovery displays every persisted reviewable option and the backend recommendation',()=>{
+  const alternateId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const alternatePlan='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const alternateVehicle='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const first={...recovery,priority:1,reviewable:true,strategy:'CROSS_ROUTE_RESOURCE_ALTERNATIVE',ranking_reason:'Fewer changed orders',metrics:{unassigned_order_count:0,reassigned_order_count:1,changed_order_count:1,handover_count:1,completion_at:'2026-09-27T03:30:00Z'}};
+  const second={...first,recovery_plan_id:alternateId,candidate_delivery_plan_id:alternatePlan,candidate_plan_code:'PLAN-REC-B',priority:2,agent_explanation:'Alternate vehicle can collect cargo.'};
+  return withFetch({
+    [`GET /api/incidents/${incident.id}`]:incident,
+    [`GET /api/incidents/${incident.id}/affected-orders`]:affected,
+    [`GET /api/incidents/${incident.id}/recovery-options`]:{incident_id:incident.id,batch_id:'batch-1',outcome:'PENDING_REVIEW',candidates:[first,second],recommended_recovery_plan_id:alternateId,ranking_policy:'COVERAGE_DISRUPTION_COMPLETION_V1',manual_intervention_required:false},
+    [`GET /api/recovery-plans/${recovery.recovery_plan_id}/comparison`]:comparison,
+    [`GET /api/recovery-plans/${alternateId}/comparison`]:{...comparison,recovery_plan_id:alternateId,candidate_plan_id:alternatePlan,orders:comparison.orders.map(row=>({...row,candidate_vehicle_id:alternateVehicle})),stop_changes:comparison.stop_changes.map(row=>({...row,candidate_vehicle_id:alternateVehicle}))},
+    [`GET /api/orders/${affected[0].order_id}`]:{order_code:'ORD-LIVE',delivery_location:{display_name:'Customer A'}},
+    [`GET /api/vehicles/${incident.vehicle_id}`]:{vehicle_code:'VEH-LIVE'},
+    'GET /api/vehicles/77777777-7777-4777-8777-777777777777':{vehicle_code:'VEH-NEW'},
+    [`GET /api/vehicles/${alternateVehicle}`]:{vehicle_code:'VEH-ALT'},
+  },async calls=>{
+    const result=await loadLiveRecovery({incidentId:incident.id,signal:new AbortController().signal});
+    assert.equal(result.candidates.length,2);
+    assert.deepEqual(result.candidates.map(item=>item.id),[recovery.recovery_plan_id,alternateId]);
+    assert.equal(result.recommendedCandidateId,alternateId);
+    assert.equal(result.candidates[1].orderReassignments[0].toResource,'VEH-ALT');
+    assert.equal(result.candidates[1].reviewSnapshot.comparison.candidatePlanId,alternatePlan);
+    assert.ok(!calls.some(call=>call.key.endsWith('/recovery')));
+  });
+});
+
+test('live recovery starts ranked option generation once when none exists',()=>withFetch({
+  [`GET /api/incidents/${incident.id}`]:incident,
+  [`GET /api/incidents/${incident.id}/affected-orders`]:affected,
+  [`GET /api/incidents/${incident.id}/recovery-options`]:{incident_id:incident.id,batch_id:null,outcome:'NOT_STARTED',candidates:[],recommended_recovery_plan_id:null,ranking_policy:null,manual_intervention_required:false},
+  [`POST /api/incidents/${incident.id}/recovery-options`]:{incident_id:incident.id,batch_id:'batch-1',outcome:'NO_FEASIBLE_RECOVERY',candidates:[],recommended_recovery_plan_id:null,ranking_policy:null,manual_intervention_required:true},
+},async calls=>{
+  const result=await loadLiveRecovery({incidentId:incident.id,signal:new AbortController().signal});
+  assert.equal(result.candidates.length,0);
+  assert.equal(calls.filter(call=>call.key===`POST /api/incidents/${incident.id}/recovery-options`).length,1);
+  assert.equal(calls.find(call=>call.key.startsWith('POST ')).body.max_candidates,3);
+  assert.ok(!calls.some(call=>call.key===`POST /api/incidents/${incident.id}/recovery`));
+}));
+
 test('historical Chinese Candidate text is shown as an English verified summary',()=>withFetch({
   [`GET /api/incidents/${incident.id}`]:incident,
   [`GET /api/incidents/${incident.id}/affected-orders`]:affected,
+  [`GET /api/incidents/${incident.id}/recovery-options`]:{outcome:'LEGACY_RECOVERY',candidates:[],recommended_recovery_plan_id:null,manual_intervention_required:false},
   [`GET /api/incidents/${incident.id}/recovery-plans`]:[{...recovery,scope_description:'改派方案',agent_explanation:'该方案需要人工批准。'}],
   [`GET /api/recovery-plans/${recovery.recovery_plan_id}/comparison`]:comparison,
   [`GET /api/orders/${affected[0].order_id}`]:{order_code:'ORD-LIVE',delivery_location:{display_name:'Customer A'}},
@@ -114,6 +161,7 @@ test('historical Chinese Candidate text is shown as an English verified summary'
 test('live recovery starts the official recovery command once when no candidate exists',()=>withFetch({
   [`GET /api/incidents/${incident.id}`]:incident,
   [`GET /api/incidents/${incident.id}/affected-orders`]:affected,
+  [`GET /api/incidents/${incident.id}/recovery-options`]:{outcome:'LEGACY_RECOVERY',candidates:[],recommended_recovery_plan_id:null,manual_intervention_required:false},
   [`GET /api/incidents/${incident.id}/recovery-plans`]:[],
   [`POST /api/incidents/${incident.id}/recovery`]:{incident_id:incident.id,outcome:'PENDING_REVIEW',attempts_created:[],reviewable_recovery_plan_id:recovery.recovery_plan_id,candidate_delivery_plan_id:recovery.candidate_delivery_plan_id,agent_explanation:'Handover and reassign the order.'},
   [`GET /api/recovery-plans/${recovery.recovery_plan_id}`]:recovery,
@@ -125,7 +173,7 @@ test('live recovery starts the official recovery command once when no candidate 
   const result=await loadLiveRecovery({incidentId:incident.id,signal:new AbortController().signal});
   assert.equal(result.candidates.length,1);
   assert.equal(calls.filter(call=>call.key===`POST /api/incidents/${incident.id}/recovery`).length,1);
-  assert.ok(!calls.some(call=>call.key.includes('recovery-options')));
+  assert.ok(!calls.some(call=>call.key===`POST /api/incidents/${incident.id}/recovery-options`));
 }));
 
 test('agent question sends exact selected Recovery and Alert IDs; approval requires a reason',()=>withFetch({

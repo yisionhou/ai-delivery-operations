@@ -32,8 +32,8 @@ function ChangeOverview({candidate,controller:c,compare}:{candidate:RecoveryCand
   const live=c.result?.source==='live';
   const metrics=[
     [candidate.reassignedOrdersCount,'Orders reassigned'],[summary?.affectedVehicles??'Unavailable','Vehicles affected'],
-    [summary?.routeTasksChanged??'Unavailable','Route tasks changed'],[signed(candidate.completionImpactMinutes,'min'),'Completion impact'],
-    [signed(candidate.distanceImpactKm,'km'),'Distance impact'],[candidate.successProbability===undefined?'Unavailable':`${Math.round(candidate.successProbability*100)}%`,'Feasibility estimate'],
+    [summary?.routeTasksChanged??'Unavailable','Route tasks changed'],[signed(candidate.completionImpactMinutes,'min'),live?'Planned finish change':'Completion impact'],
+    [signed(candidate.distanceImpactKm,'km'),live?'Plan distance change':'Distance impact'],[live?candidate.validationStatus??'Unavailable':candidate.successProbability===undefined?'Unavailable':`${Math.round(candidate.successProbability*100)}%`,live?'Validation status':'Feasibility estimate'],
   ];
   return <section className="rr-overview" aria-labelledby="rr-overview-title">
     <header><div><p className="pr-eyebrow">CHANGE OVERVIEW</p><h3 id="rr-overview-title">Candidate {candidate.label} · {candidate.title}</h3></div>

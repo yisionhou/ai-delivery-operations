@@ -24,6 +24,25 @@ test('agent bridge forwards only official authenticated Recovery commands',async
   }finally{globalThis.fetch=oldFetch;if(before===undefined)delete process.env.PENROSE_DISPATCH_TOKEN;else process.env.PENROSE_DISPATCH_TOKEN=before;if(localBefore===undefined)delete process.env.PENROSE_AGENT_LOCAL_ONLY;else process.env.PENROSE_AGENT_LOCAL_ONLY=localBefore;}
 });
 
+test('agent bridge forwards ranked Recovery option reads and authenticated generation',async()=>{
+  const before=process.env.PENROSE_DISPATCH_TOKEN,localBefore=process.env.PENROSE_AGENT_LOCAL_ONLY,oldFetch=globalThis.fetch,calls=[];
+  process.env.PENROSE_DISPATCH_TOKEN=token;
+  process.env.PENROSE_AGENT_LOCAL_ONLY='true';
+  globalThis.fetch=async(url,init)=>{calls.push({url:String(url),init});return Response.json({success:true,code:'PENDING_REVIEW',message:'ok',data:{candidates:[]},request_id:'req-1'},{status:init?.method==='POST'?201:200});};
+  const path='incidents/11111111-1111-4111-8111-111111111111/recovery-options';
+  try{
+    const read=await GET(request(path),params(path));
+    const generated=await POST(request(path,'POST',{max_candidates:3}),params(path));
+    assert.equal(read.status,200);
+    assert.equal(generated.status,201);
+    assert.equal(calls.length,2);
+    assert.equal(new URL(calls[0].url).pathname,'/api/'+path);
+    assert.equal(new URL(calls[1].url).pathname,'/api/'+path);
+    assert.equal(calls[1].init.headers.Authorization,`Bearer ${token}`);
+    assert.deepEqual(JSON.parse(calls[1].init.body),{max_candidates:3});
+  }finally{globalThis.fetch=oldFetch;if(before===undefined)delete process.env.PENROSE_DISPATCH_TOKEN;else process.env.PENROSE_DISPATCH_TOKEN=before;if(localBefore===undefined)delete process.env.PENROSE_AGENT_LOCAL_ONLY;else process.env.PENROSE_AGENT_LOCAL_ONLY=localBefore;}
+});
+
 test('agent bridge refuses public writes unless a trusted authentication proxy is explicitly configured',async()=>{
   const before=process.env.PENROSE_DISPATCH_TOKEN,localBefore=process.env.PENROSE_AGENT_LOCAL_ONLY,proxyBefore=process.env.PENROSE_AGENT_TRUSTED_AUTH_PROXY,oldFetch=globalThis.fetch;
   process.env.PENROSE_DISPATCH_TOKEN=token;delete process.env.PENROSE_AGENT_LOCAL_ONLY;delete process.env.PENROSE_AGENT_TRUSTED_AUTH_PROXY;
@@ -32,6 +51,8 @@ test('agent bridge refuses public writes unless a trusted authentication proxy i
     const path='incidents/11111111-1111-4111-8111-111111111111/recovery';
     const reply=await POST(request(path,'POST',{}),params(path));
     assert.equal(reply.status,403);
+    const options=path+'-options';
+    assert.equal((await POST(request(options,'POST',{max_candidates:3}),params(options))).status,403);
   }finally{globalThis.fetch=oldFetch;if(before===undefined)delete process.env.PENROSE_DISPATCH_TOKEN;else process.env.PENROSE_DISPATCH_TOKEN=before;if(localBefore!==undefined)process.env.PENROSE_AGENT_LOCAL_ONLY=localBefore;if(proxyBefore!==undefined)process.env.PENROSE_AGENT_TRUSTED_AUTH_PROXY=proxyBefore;}
 });
 

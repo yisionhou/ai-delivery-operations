@@ -17,6 +17,7 @@ export type RecoveryCandidate = {
   id: string; label: string; title: string; description: string;
   reassignedOrdersCount: number; completionImpactMinutes: number|null; distanceImpactKm: number|null;
   successProbability?: number; orderReassignments: OrderReassignment[];
+  validationStatus?: string;
   routeImpact: RouteImpact; recommendationReason: string;
   explanationSource?: string;
   reviewSnapshot?: CandidateComparison;

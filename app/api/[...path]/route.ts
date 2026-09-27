@@ -1,7 +1,7 @@
 // Same-origin bridge. Only explicitly registered backend resources are exposed.
-const allowed=/^(vehicles(?:\/[a-zA-Z0-9-]+)?|operations\/(?:vehicles|orders|dashboard|routes|workspace|simulated-positions|alerts)|vehicle-routes\/[a-zA-Z0-9-]+(?:\/stops)?|incidents(?:\/[a-zA-Z0-9-]+(?:\/(?:affected-orders|recovery-plans))?)?|recovery-plans\/[a-zA-Z0-9-]+(?:\/comparison)?|delivery-plans(?:\/[a-zA-Z0-9-]+(?:\/(?:orders|routes))?)?|orders(?:\/[a-zA-Z0-9-]+)?|merchants\/[a-zA-Z0-9-]+)$/;
+const allowed=/^(vehicles(?:\/[a-zA-Z0-9-]+)?|operations\/(?:vehicles|orders|dashboard|routes|workspace|simulated-positions|alerts)|vehicle-routes\/[a-zA-Z0-9-]+(?:\/stops)?|incidents(?:\/[a-zA-Z0-9-]+(?:\/(?:affected-orders|recovery-plans|recovery-options))?)?|recovery-plans\/[a-zA-Z0-9-]+(?:\/comparison)?|delivery-plans(?:\/[a-zA-Z0-9-]+(?:\/(?:orders|routes))?)?|orders(?:\/[a-zA-Z0-9-]+)?|merchants\/[a-zA-Z0-9-]+)$/;
 const draftPath=/^planning\/drafts(?:\/[0-9a-fA-F-]{36}\/confirm)?$/;
-const agentWritePath=/^(?:agent\/dispatch|incidents\/[0-9a-fA-F-]{36}\/recovery|recovery-plans\/[0-9a-fA-F-]{36}\/approve)$/;
+const agentWritePath=/^(?:agent\/dispatch|incidents\/[0-9a-fA-F-]{36}\/(?:recovery|recovery-options)|recovery-plans\/[0-9a-fA-F-]{36}\/approve)$/;
 export async function GET(request:Request,{params}:{params:Promise<{path:string[]}>}){
   const {path}=await params,resource=path.join('/');
   if(!allowed.test(resource))return Response.json({success:false,code:'NOT_FOUND',message:'This read endpoint is not registered.',data:null,request_id:'frontend'},{status:404});

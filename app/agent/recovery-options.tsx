@@ -237,7 +237,7 @@ export default function RecoveryOptions({controller:c,demo=true}:{controller:Rec
       <PanelSurface main/>
       <div className="pr-main-heading"><p className="pr-eyebrow"><ClipboardList/>RECOVERY OPTIONS</p>
         <h2 ref={heading} id="pr-title" tabIndex={-1}>{title}</h2>
-        <p>{generating?'Analyzing resources, routes, and constraints.':c.error?'The request could not be completed. Retry planning to continue.':candidates.length?(demo?'Compare the trade-offs. Penrose proposes; you decide.':'Review the validated Candidate. The dispatcher decides whether to apply it.'):'No feasible recovery plan could be generated under the current constraints. Manual intervention is required.'}</p>
+        <p>{generating?'Analyzing resources, routes, and constraints.':c.error?'The request could not be completed. Retry planning to continue.':candidates.length?'Compare the validated candidates. The dispatcher decides whether to apply one.':'No feasible recovery plan could be generated under the current constraints. Manual intervention is required.'}</p>
       </div>
       <BranchVisual controller={c}/>
       <dl className="pr-main-metrics"><div><dd>{c.result?.affectedOrdersCount??(demo?briefingDemo.incident.affectedOrders.length:'—')}</dd><dt>Affected orders</dt></div><div><dd>{c.result?.nearbyAvailableResourcesCount??'—'}</dd><dt>Nearby available resources</dt></div><div><dd>{generating?'—':c.error?'—':candidates.length}</dd><dt>Recovery candidates</dt></div></dl>
@@ -248,7 +248,7 @@ export default function RecoveryOptions({controller:c,demo=true}:{controller:Rec
         {generating?<div className="pr-generating" role="status"><p className="pr-eyebrow"><GitBranch/>RECOVERY OPTIONS COMPARISON</p><h3>Evaluating recovery paths</h3><p>Checking resource availability, delivery windows and route impact.</p><div className="pr-generation-track"/><small>{demo?'Demo planning · illustrative outcomes':'Waiting for planning results'}</small></div>:
           c.error?<div className="pr-error" role="alert"><TriangleAlert/><h3>Unable to load recovery options</h3><p>{c.error}</p><button className="pr-pill" onClick={()=>c.generate(c.demoCount)}>Retry Planning <RefreshCw/></button></div>:
           c.result&&candidates.length===0?<ManualIntervention data={c.result} controller={c}/>:
-          <><header className="pr-comparison-heading"><p className="pr-eyebrow"><GitBranch/>RECOVERY OPTIONS COMPARISON</p><p>{demo?'Compare key metrics across all recovery options':'Inspect the saved Candidate against the Current Plan snapshot'}</p></header>
+          <><header className="pr-comparison-heading"><p className="pr-eyebrow"><GitBranch/>RECOVERY OPTIONS COMPARISON</p><p>Compare validated candidates against the Current Plan snapshot</p></header>
             <div className="pr-candidate-grid" style={{'--candidate-count':Math.max(1,candidates.length)} as CSSProperties}>
               {candidates.map(candidate=><button key={candidate.id} className="pr-candidate-card" data-candidate-id={candidate.id}
                 data-recommended={candidate.id===c.result?.recommendedCandidateId} data-selected={candidate.id===c.selectedCandidateId}
