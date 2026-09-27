@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {loadOverview,loadPositions} from './overview-api.ts';
+import {loadOverview,loadPositions,overviewErrorMessage} from './overview-api.ts';
 import {overviewMetrics,overviewVehicles} from './overview-model.ts';
 import {GET} from '../api/[...path]/route.ts';
 
@@ -40,6 +40,17 @@ test('a failed optional feed stays unavailable and cannot become a demo number',
 test('older dashboard without KPI fields stays explicitly unavailable',()=>{
   const legacy={...dashboard,on_time:undefined,regions:undefined,trends:undefined};
   assert.equal(overviewMetrics({dashboard:legacy}).onTimeRate,null);
+});
+
+test('a selected date without a Current plan explains why Operations has no data',async()=>{
+  const original=globalThis.fetch,calls=[];
+  globalThis.fetch=async url=>{calls.push(String(url));return {ok:false,status:404,json:async()=>({success:false,code:'CURRENT_PLAN_NOT_FOUND',message:'No current delivery plan for 2026-09-25',data:null})};};
+  try{
+    let failure;
+    try{await loadOverview('2026-09-25');assert.fail('expected no-plan response');}catch(error){failure=error;}
+    assert.deepEqual(calls,['/api/operations/dashboard?business_date=2026-09-25']);
+    assert.equal(overviewErrorMessage(failure,'2026-09-25'),'No Current delivery plan for 2026-09-25. Orders may exist, but the Operations dashboard requires a Current plan.');
+  }finally{globalThis.fetch=original;}
 });
 
 test('same-origin bridge permits route and simulated-position reads',async()=>{

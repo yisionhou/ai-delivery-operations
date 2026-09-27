@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {apiRead} from '../vehicles/vehicle-api.ts';
+import {apiRead,VehicleApiError} from '../vehicles/vehicle-api.ts';
 
 const counts=z.object({total:z.number(),completed:z.number(),in_progress:z.number(),at_risk:z.number()});
 const resources=z.object({available:z.number(),active:z.number(),unavailable:z.number()});
@@ -29,6 +29,12 @@ async function allPages<T extends z.ZodTypeAny>(path:string,schema:T,signal?:Abo
 }
 
 export function loadPositions(date:string,signal?:AbortSignal){return apiRead(`/operations/simulated-positions?business_date=${encodeURIComponent(date)}`,positionSchema,signal);}
+
+export function overviewErrorMessage(error:unknown,date:string):string{
+  if(error instanceof VehicleApiError&&error.code==='CURRENT_PLAN_NOT_FOUND')
+    return `No Current delivery plan for ${date}. Orders may exist, but the Operations dashboard requires a Current plan.`;
+  return error instanceof Error?error.message:'Overview data could not be loaded.';
+}
 
 export async function loadOverview(date:string,signal?:AbortSignal):Promise<OverviewSnapshot>{
   const query=`business_date=${encodeURIComponent(date)}`;

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import {useRouter} from 'next/navigation';
 import {
   AlertTriangle, ArrowLeft, Box, Check, ChevronRight,
-  Clock3, CloudRain, Minus, Package, Play, Plus, RefreshCw,
+  Clock3, CloudRain, Minus, Package, Plus, RefreshCw,
   Truck, UserRound, Waypoints, RotateCcw,
 } from "lucide-react";
 import SingaporeScene, { RegionCollection, RegionKey } from "./singapore-scene";
@@ -14,7 +14,7 @@ import {incident,incidentWorkspaces} from './incidents/incident-mock';
 import {incidentPageHref} from './incidents/incident-navigation';
 import Sidebar from "./nexus-sidebar";
 import OperationsPage from './operations/operations-page';
-import {loadOverview,loadPositions,type OverviewSnapshot} from './overview/overview-api';
+import {loadOverview,loadPositions,overviewErrorMessage,type OverviewSnapshot} from './overview/overview-api';
 import {overviewMetrics,overviewVehicles} from './overview/overview-model';
 
 type AppState = "SINGAPORE_OVERVIEW" | "REGION_FOCUS" | "INCIDENT_FOCUS" | "RECOVERY";
@@ -64,11 +64,9 @@ function MapOverlay({ state, selectedRegion, hoveredRegion, onReset, onViewComma
     <div className="map-heading"><span>SINGAPORE</span><small>{backend?'MAIN ROUTE NETWORK · SIMULATED VEHICLES':focused ? `${info!.label.toUpperCase()} · ${state === "INCIDENT_FOCUS" ? "VEHICLE INCIDENT" : "LIVE OPERATIONS"}` : "LIVE DELIVERY NETWORK"}</small></div>
     {hoveredRegion && !focused && <div className="hover-prompt">{REGION_STATS[hoveredRegion].label} · click to focus</div>}
     {focused && <button className="back-singapore" onClick={onReset}><ArrowLeft/> Back to Singapore</button>}
-    <div className="map-mode"><button>2D</button><button className="active">3D</button></div>
     <div className="compass"><small>N</small><span>⌁</span></div>
     <div className="zoom-control"><button aria-label="Zoom in" disabled={cameraBusy} onClick={()=>onViewCommand('in')}><Plus/></button><button aria-label="Zoom out" disabled={cameraBusy} onClick={()=>onViewCommand('out')}><Minus/></button></div>
     <div className="inspection-toolbar"><button onClick={()=>onViewCommand('reset')} disabled={cameraBusy} aria-label="Reset View"><RotateCcw/>Reset View</button><span aria-live="polite">{cameraBusy?'Adjusting view…':'Drag to inspect · Scroll to zoom'}</span></div>
-    <div className="live-card"><div><span>{backend?'Simulated positions':'Live Operation'}</span><b>{backend?snapshot?.positions?`${snapshot.positions.vehicles.length} ${snapshot.positions.vehicles.length===1?'vehicle':'vehicles'} in snapshot`:'Positions unavailable':'18 vehicles on route'}</b></div><button aria-label="Vehicle positions" disabled={backend}><Play/></button></div>
     {focused && <aside className="west-focus-panel" key={selectedRegion} aria-label="Region situation">
       <div className="focus-kicker"><span/> {backend?'REGION FOCUS':state === "INCIDENT_FOCUS" ? "INCIDENT RESPONSE" : "REGION FOCUS"}<small>{backend?'BACKEND · DESTINATION COUNTS':'LIVE · MOCK'}</small></div>
       <h3>{info!.label}</h3><p>{info!.districts}</p>
@@ -170,7 +168,7 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
     const refresh=async()=>{
       if(pending)return;pending=true;setBackendBusy(true);
       try{const data=await loadOverview(businessDate,controller.signal);if(!controller.signal.aborted){setSnapshot(data);setBackendError(null);}}
-      catch(error){if(!controller.signal.aborted){setSnapshot(null);setBackendError(error instanceof Error?error.message:'Overview data could not be loaded.');}}
+      catch(error){if(!controller.signal.aborted){setSnapshot(null);setBackendError(overviewErrorMessage(error,businessDate));}}
       finally{pending=false;if(!controller.signal.aborted)setBackendBusy(false);}
     };
     void refresh();const timer=setInterval(()=>void refresh(),15000);
@@ -217,10 +215,10 @@ export default function OperationsConsole({initialPage='overview'}:{initialPage?
   ];
 
   return <main className={`nexus-app page-${activePage}`}>
-    <Sidebar onIncident={()=>openIncident()} onOverview={() => setActivePage('overview')} onOperations={openOperations} activePage={activePage} incidentCount={source==='api'?snapshot?.dashboard.open_incidents:Object.keys(incidentWorkspaces).length}/>
+    <Sidebar onIncident={()=>openIncident()} onOverview={() => {setSource('api');setActivePage('overview');}} onOperations={openOperations} activePage={activePage} incidentCount={source==='api'?snapshot?.dashboard.open_incidents:Object.keys(incidentWorkspaces).length}/>
     <div className="nexus-main" style={activePage!=='overview' ? {display:'none'} : undefined} aria-hidden={activePage!=='overview' || undefined}>
       <header className="nexus-header"><div><h1>Good morning, Alex.</h1><p>{source==='api'?'Current-plan operational snapshot from PenroseRoute.':"Everything in motion. We'll help you keep it that way."}</p></div>
-        <div className="header-tools overview-controls"><div className="overview-source"><button aria-pressed={source==='api'} onClick={()=>{setSnapshot(null);setBackendError(null);setSource('api');}}>Backend</button><button aria-pressed={source==='demo'} onClick={()=>setSource('demo')}>Demo</button></div><input aria-label="Business Date" type="date" value={businessDate} onChange={event=>{if(event.target.value){setSnapshot(null);setBackendError(null);setBusinessDate(event.target.value);}}}/><button aria-label="Refresh Overview" disabled={backendBusy||source==='demo'} onClick={()=>setOverviewRevision(value=>value+1)}><RefreshCw/></button><span className="user-avatar"><UserRound/></span></div>
+        <div className="header-tools overview-controls"><input aria-label="Business Date" type="date" value={businessDate} onChange={event=>{if(event.target.value){setSnapshot(null);setBackendError(null);setBusinessDate(event.target.value);}}}/><button aria-label="Refresh Overview" disabled={backendBusy||source==='demo'} onClick={()=>setOverviewRevision(value=>value+1)}><RefreshCw/></button><span className="user-avatar"><UserRound/></span></div>
       </header>
       <section className="kpi-row">{(source==='api'?backendKpi:KPI).map((item) => <KpiCard key={item.label} item={item} demo={source==='demo'}/>)}<div className="clock-card"><small>{clock===null?'—':new Intl.DateTimeFormat('en-SG',{timeZone:'Asia/Singapore',weekday:'short',day:'2-digit',month:'short',year:'numeric'}).format(clock)}</small><strong>{clock===null?'—':new Intl.DateTimeFormat('en-SG',{timeZone:'Asia/Singapore',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(clock)}</strong></div></section>
       {source==='api'&&(backendError||snapshot?.warnings.length)?<div className="overview-data-status" role="status">{backendError?`Overview data unavailable: ${backendError}`:snapshot?.warnings.join(' · ')}</div>:null}
