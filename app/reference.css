@@ -26,6 +26,15 @@
 .page-overview .vehicle-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 .page-overview .vehicle-status{font-size:9px;white-space:nowrap}
 .page-overview .bottom-panel header>button{white-space:nowrap}
+.page-overview .nexus-main{position:relative}
+.page-overview .overview-controls{gap:10px}
+.page-overview .overview-source{display:flex;border:1px solid rgba(225,188,113,.3);border-radius:5px;overflow:hidden}
+.page-overview .overview-source button{padding:8px 11px;border:0;background:#101519;color:#bbb9b4;font-size:11px;cursor:pointer}
+.page-overview .overview-source button[aria-pressed="true"]{background:#634b28;color:#f5dda9}
+.page-overview .overview-controls input[type="date"]{width:145px;height:35px;padding:0 7px;border:1px solid rgba(255,255,255,.12);border-radius:5px;background:#111619;color:#eee8dc;color-scheme:dark}
+.page-overview .overview-controls>button:disabled{opacity:.4;cursor:default}
+.page-overview .overview-data-status{position:absolute;z-index:8;top:199px;left:40px;max-width:60%;padding:7px 11px;border:1px solid rgba(255,115,91,.28);border-radius:5px;background:rgba(30,15,14,.92);color:#f2b2a4;font-size:11px;pointer-events:none}
+.page-overview .overview-unavailable{margin:20px 4px;color:#aaa9a3;font-size:11px}
 @media(max-width:1280px){
   .page-overview .incident-row b,.page-overview .agent-status b,.page-overview .agent-step{font-size:10px}
   .page-overview .incident-row small,.page-overview .incident-row time,.page-overview .agent-status small{font-size:8px}
