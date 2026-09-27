@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowRight, TriangleAlert, Truck, X } from 'lucide-react';
 import PanelSurface from './panel-surface';
+import { useRecoveryButtonTracking } from './use-recovery-button-tracking';
 import { briefingDemo as demo } from './briefing-demo';
 import type { PenroseSceneState } from './use-entrance-transition';
 
@@ -12,6 +13,8 @@ const initialSummary = "I've reviewed the demo situation. The main issue is V03 
 export default function SituationBriefing({ phase, active = true, onEnterRecovery, children, hero }: { phase: PenroseSceneState; active?: boolean; onEnterRecovery: () => void; children?: ReactNode; hero?: ReactNode }) {
   const ready = phase === 'workspace-ready' && active;
   const recovery = useRef<HTMLButtonElement>(null);
+  // Keep tracking while the briefing is hidden: returning must not reset its pose.
+  useRecoveryButtonTracking(recovery, phase === 'workspace-ready');
   const dialog = useRef<HTMLDialogElement>(null);
   const [detail, setDetail] = useState<Detail>('incident');
   const [answer, setAnswer] = useState(initialSummary);
@@ -41,7 +44,7 @@ export default function SituationBriefing({ phase, active = true, onEnterRecover
             <div className="pw-core">
               <div className="pw-hero-destination" aria-hidden="true" />
               <div className="pw-recovery-reveal">
-                <button ref={recovery} className="pw-recovery" onClick={onEnterRecovery} disabled={!ready}>Enter Recovery <ArrowRight aria-hidden="true" /></button>
+                <button ref={recovery} className="pw-recovery" onClick={onEnterRecovery} disabled={!ready}><span>Enter Recovery</span><ArrowRight aria-hidden="true" /></button>
               </div>
               <p className="pw-core-caption pw-copy-reveal">SITUATION BRIEFING</p>
             </div>
